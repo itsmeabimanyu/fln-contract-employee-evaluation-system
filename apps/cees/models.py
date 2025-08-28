@@ -1,5 +1,6 @@
 from django.db import models
 import uuid
+from django.utils import timezone
 
 # Create your models here.
 class Departemen(models.Model):
@@ -10,6 +11,10 @@ class Departemen(models.Model):
 
     def __str__(self):
         return self.nama_departemen
+    
+    def soft_delete(self):
+        self.deleted_at = timezone.now()  # Set waktu penghapusan
+        self.save()
 
 class Jabatan(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

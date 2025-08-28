@@ -16,61 +16,84 @@ class ListDepartemen(TemplateView):
         context['title'] = 'Department'
         context['card_title'] = 'Department'
         context['form'] = DepartemenForm
-        
-        '''
+        context['buttons_action'] = f"""
+            <button type="button" data-bs-toggle="modal" data-bs-target="#modal-first" class="btn btn-danger" id="delete-button" ><i class="bi bi-trash3-fill"></i>Delete Checked</button>
+            """
         context['act_modal'] = {
-            'Delete Item': {
+            'Delete Checked': {
                 'modal_id': f'modal-first',
-                'action_button': f'<button type="submit" name="action" value="delete" class="btn btn-danger" id="delete-modal-button">Delete</button>',
+                'icon' : '<i class="bi bi-trash-fill me-2"></i>',
+                'action_button': f'<button type="submit" name="action" value="delete_checked" class="btn btn-danger" id="delete-modal-button"><i class="bi bi-check-circle-fill me-2"></i>Delete</button>',
             }
         }
         
-        # context['additionals_button'] = f"<button type='button' class='btn ms-2 btn-secondary' onclick='window.location.href=\"{reverse('key_create')}\"'><i class='fa fa-plus me-2'></i>Private Key</button>"
-        
+        items = Departemen.objects.filter(deleted_at__isnull=True)
         # Tambah tombol ke tiap baris data
         for item in items:
             item.form_update = DepartemenForm(instance=item)
             item.buttons_action = [
-                f"<button type='button' data-bs-toggle='modal' data-bs-target='#modal-first-{item.id}' class='btn btn-danger w-100'><i class='fas fa-trash me-2'></i>Delete</button>"
-                f"<button type='button' data-bs-toggle='modal' data-bs-target='#modal-second-{item.id}' class='mt-1 btn btn-info w-100' id='' ><i class='fas fa-pen me-2'></i>Edit</button>"
+                f"""
+                <div class="bs-component">
+                    <div class="btn-group" role="group" aria-label="Basic example">
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <button class="btn btn-sm btn-warning" type="button" data-bs-toggle='modal' data-bs-target='#modal-first-{item.id}' title="Edit"><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle='modal' data-bs-target='#modal-second-{item.id}' title="Delete"><i class="bi bi-trash3-fill"></i></button>
+                        </div>
+                    </div>
+                </div>
+                """
                 ]
 
             # Content modal
             item.modals_form = {
-                'Delete Item': {
+                f'Update': {
                     'modal_id': f'modal-first-{item.id}',
-                    'action_button': f'<button type="submit" name="action" value="delete_one" class="btn btn-danger">Delete</button>',
-                    'info': f'<p class="fw-bolder text-secondary">Invoice {item.invoice_number}</p>'
+                    'action_button': f'<button type="submit" name="action" value="edit" class="btn btn-warning"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>',
+                    'icon': f'<i class="bi bi-pencil-square me-2"></i>',
                 },
-                'Update Item': {
+                f'Delete': {
                     'modal_id': f'modal-second-{item.id}',
-                    'action_button': f'<button type="submit" name="action" value="edit" class="btn btn-secondary">Submit</button>',
-                    'info': (
-                        f"""<p class="text-muted mb-1">
-                        <label>Created by:</label><br>
-                        {item.created_by}<br>
-                        <small>{item.created_at.strftime("%d-%m-%Y %H:%M")}</small>
-                        </p>"""
-                    )
+                    'type': 'delete',
+                    'icon' : '<i class="bi bi-trash-fill me-2"></i>',
+                    'action_button': f'<button type="submit" name="action" value="delete" class="btn btn-danger"><i class="bi bi-check-circle-fill me-2"></i>Delete</button>',
                 }
             }
 
-        
-        '''
-        items = Departemen.objects.all()
         context['items'] = items
         return context
 
     def post(self, request, *args, **kwargs):
-        if self.request.POST.get('action') == 'save':
+        action = request.POST.get('action')
+        if action == 'save':
             department_names = self.request.POST.getlist('nama_departemen')
 
             for department_name in department_names:
                 Departemen.objects.create(
                     nama_departemen=department_name
                 )
-
             # messages.success(self.request, 'Invoice added successfully!')
+
+        elif action == 'edit':
+            item_id = request.POST.get('item_id')
+            departemen = get_object_or_404(Departemen, pk=item_id)
+            form = DepartemenForm(request.POST, instance=departemen)
+            
+            if form.is_valid():
+                form.save()
+
+        elif action == 'delete':
+            item_id = self.request.POST.get('item_id')
+            departemen = get_object_or_404(Departemen, pk=item_id)
+            departemen.soft_delete()
+
+        elif action == 'delete_checked':
+            # Mendapatkan ID yang dipilih dari checkbox
+            selected_ids = self.request.POST.getlist('select')
+            print(selected_ids)
+            if selected_ids:
+                items = Departemen.objects.filter(id__in=selected_ids)
+                for item in items:
+                    item.soft_delete()
 
         return redirect(self.request.META.get('HTTP_REFERER'))
 

@@ -1,0 +1,45 @@
+{% load static %}
+{% for item in items %}
+    {% for modal_title, modal_data in item.modals_form.items %}
+    <div class="modal fade" data-bs-backdrop="static" id="{{ modal_data.modal_id }}" tabindex="-1" role="dialog" aria-labelledby="{{ modal_data.modal_id }}Label" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="modal-header {% if modal_title == 'Delete' %}bg-danger text-light{% else %}bg-warning{% endif %}">
+                        <h5 class="modal-title fw-bolder" id="{{ modal_data.modal_id }}Label">{{ modal_data.icon|safe }}{{ modal_title }}</h5>
+                        <button type="button" class="btn-close {% if modal_title == 'Delete' %}btn-close-white{% endif %}" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                        {% if modal_title == 'Update' %}
+                            <!-- Tambahkan input form jika update -->
+                            {% for field in item.form_update %}
+                                <div class="mb-3">
+                                    <label for="{{ field.id_for_label }}" class="form-label">
+                                        {{ field.label|title }}
+                                    </label>
+                                    {{ field }}
+                                    
+                                    {% if field.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ field.errors|join:", " }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p>Are you sure you want to {{ modal_title|lower }} "<strong>{{ item }}</strong>"?</p>
+                        {% endif %}
+                        {{ modal_data.info|safe }}
+                    </div>
+                    <div class="modal-footer">
+                        {{ modal_data.action_button|safe }}
+                        <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% endfor %}
