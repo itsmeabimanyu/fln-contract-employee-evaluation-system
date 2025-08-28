@@ -24,6 +24,10 @@ class Jabatan(models.Model):
 
     def __str__(self):
         return self.nama_jabatan
+    
+    def soft_delete(self):
+        self.deleted_at = timezone.now()  # Set waktu penghapusan
+        self.save()
 
 class KaryawanKontrak(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
