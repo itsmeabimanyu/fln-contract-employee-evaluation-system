@@ -3,9 +3,10 @@ from django.views.generic import (
     CreateView, TemplateView, View, ListView,
     DetailView, UpdateView
 )
-from .models import Departemen, Jabatan
-from .forms import DepartemenForm, JabatanForm
+from .models import Departemen, Jabatan, DataKaryawan
+from .forms import DepartemenForm, JabatanForm, DataKaryawanForm
 from django.shortcuts import get_object_or_404, redirect, render
+from datetime import datetime
 
 # Create your views here.
 class ListDepartemen(TemplateView):
@@ -27,7 +28,7 @@ class ListDepartemen(TemplateView):
             }
         }
         
-        items = Departemen.objects.filter(deleted_at__isnull=True)
+        items = Departemen.objects.filter(deleted_at__isnull=True).order_by('nama_departemen')
         # Tambah tombol ke tiap baris data
         for item in items:
             item.form_update = DepartemenForm(instance=item)
@@ -126,7 +127,7 @@ class ListJabatan(TemplateView):
             }
         }
         
-        items = Jabatan.objects.filter(deleted_at__isnull=True)
+        items = Jabatan.objects.filter(deleted_at__isnull=True).order_by('nama_jabatan')
         # Tambah tombol ke tiap baris data
         for item in items:
             item.form_update = JabatanForm(instance=item)
@@ -165,10 +166,12 @@ class ListJabatan(TemplateView):
         action = request.POST.get('action')
         if action == 'save':
             position_names = self.request.POST.getlist('nama_jabatan')
+            levels = self.request.POST.getlist('level')
 
-            for position_name in position_names:
+            for position_name, level in zip(position_names, levels):
                 Jabatan.objects.create(
-                    nama_jabatan=position_name
+                    nama_jabatan=position_name,
+                    level=level
                 )
             # messages.success(self.request, 'Invoice added successfully!')
 
@@ -191,6 +194,127 @@ class ListJabatan(TemplateView):
             print(selected_ids)
             if selected_ids:
                 items = Jabatan.objects.filter(id__in=selected_ids)
+                for item in items:
+                    item.soft_delete()
+
+        return redirect(self.request.META.get('HTTP_REFERER'))
+
+    def form_invalid(self, form):
+        response = super().form_invalid(form)
+        # messages.error(self.request, 'There was an error creating the Invoice. Please check the form and try again.')
+        return response
+
+    # Optional: You can define success_url to redirect after form submission
+    '''def get_success_url(self):
+        # Redirect to a specific page after a successful form submission
+        return reverse_lazy('invoice_create_manual')  # Replace with the name of the URL for your list page or another page.'''
+    
+class ListKaryawan(TemplateView):
+    template_name = 'pages/create.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Employee'
+        context['card_title'] = 'Employee'
+        context['form'] = DataKaryawanForm
+        context['buttons_action'] = f"""
+            <button type="button" data-bs-toggle="modal" data-bs-target="#modal-first" class="btn btn-danger" id="delete-button" ><i class="bi bi-trash3-fill"></i>Delete Checked</button>
+            """
+        context['act_modal'] = {
+            'Delete Checked': {
+                'modal_id': f'modal-first',
+                'icon' : '<i class="bi bi-trash-fill me-2"></i>',
+                'action_button': f'<button type="submit" name="action" value="delete_checked" class="btn btn-danger" id="delete-modal-button"><i class="bi bi-check-circle-fill me-2"></i>Delete</button>',
+            }
+        }
+        
+        items = DataKaryawan.objects.filter(deleted_at__isnull=True)
+        # Tambah tombol ke tiap baris data
+        for item in items:
+            item.form_update = DataKaryawanForm(instance=item)
+            item.buttons_action = [
+                f"""
+                <div class="bs-component">
+                    <div class="btn-group" role="group" aria-label="Basic example">
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <button class="btn btn-sm btn-warning" type="button" data-bs-toggle='modal' data-bs-target='#modal-first-{item.id}' title="Edit"><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle='modal' data-bs-target='#modal-second-{item.id}' title="Delete"><i class="bi bi-trash3-fill"></i></button>
+                        </div>
+                    </div>
+                </div>
+                """
+                ]
+
+            # Content modal
+            item.modals_form = {
+                f'Update': {
+                    'modal_id': f'modal-first-{item.id}',
+                    'action_button': f'<button type="submit" name="action" value="edit" class="btn btn-warning"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>',
+                    'icon': f'<i class="bi bi-pencil-square me-2"></i>',
+                },
+                f'Delete': {
+                    'modal_id': f'modal-second-{item.id}',
+                    'type': 'delete',
+                    'icon' : '<i class="bi bi-trash-fill me-2"></i>',
+                    'action_button': f'<button type="submit" name="action" value="delete" class="btn btn-danger"><i class="bi bi-check-circle-fill me-2"></i>Delete</button>',
+                }
+            }
+
+        context['items'] = items
+        return context
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        if action == 'save':
+            ids = self.request.POST.getlist('nik')
+            names = self.request.POST.getlist('nama')
+            birthplaces = self.request.POST.getlist('tempat_lahir')
+            birthdates = self.request.POST.getlist('tanggal_lahir')
+            departments = self.request.POST.getlist('departemen')
+            positions = self.request.POST.getlist('jabatan')
+            start_dates = self.request.POST.getlist('tgl_mulai_kontrak')
+            end_dates = self.request.POST.getlist('tgl_akhir_kontrak')
+
+            for id, name, birthplace, birthdate, department, position, start_date, end_date in zip(ids, names, birthplaces, birthdates, departments, positions, start_dates, end_dates):
+                try:
+                    birthdate_parsed = datetime.strptime(birthdate, "%d-%m-%Y").date()
+                    start_date_parsed = datetime.strptime(start_date, "%d-%m-%Y").date()
+                    end_date_parsed = datetime.strptime(end_date, "%d-%m-%Y").date()
+                except ValueError as e:
+                    # Kamu bisa log atau skip data yang gagal parsing
+                    print(f"Format tanggal salah: {e}")
+                    continue
+                
+                DataKaryawan.objects.create(
+                    nik=id,
+                    nama=name,
+                    tempat_lahir=birthplace,
+                    tanggal_lahir=birthdate_parsed,
+                    departemen=get_object_or_404(Departemen, pk=department),
+                    jabatan=get_object_or_404(Jabatan, pk=position),
+                    tgl_mulai_kontrak=start_date_parsed,
+                    tgl_akhir_kontrak=end_date_parsed
+                )
+
+        elif action == 'edit':
+            item_id = request.POST.get('item_id')
+            departemen = get_object_or_404(DataKaryawan, pk=item_id)
+            form = DataKaryawanForm(request.POST, instance=departemen)
+            
+            if form.is_valid():
+                form.save()
+
+        elif action == 'delete':
+            item_id = self.request.POST.get('item_id')
+            departemen = get_object_or_404(DataKaryawan, pk=item_id)
+            departemen.soft_delete()
+
+        elif action == 'delete_checked':
+            # Mendapatkan ID yang dipilih dari checkbox
+            selected_ids = self.request.POST.getlist('select')
+            print(selected_ids)
+            if selected_ids:
+                items = DataKaryawan.objects.filter(id__in=selected_ids)
                 for item in items:
                     item.soft_delete()
 

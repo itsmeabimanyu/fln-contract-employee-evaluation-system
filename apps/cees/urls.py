@@ -8,6 +8,7 @@ urlpatterns = [
     path('', lambda request: redirect('list_departemen')),
     path('master/department/', views.ListDepartemen.as_view(), name='list_departemen'),
     path('master/position/', views.ListJabatan.as_view(), name='list_jabatan'),
+    path('master/employee/', views.ListKaryawan.as_view(), name='list_karyawan'),
 ]
 
 # Tambahkan register/ hanya jika dalam mode DEBUG (development)

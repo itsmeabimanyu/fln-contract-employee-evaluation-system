@@ -42,7 +42,7 @@
                                 <td><input type="checkbox" class="select" name="select" value="{{ item.id }}"></td>
                                 <td class="clickable table-secondary">{{ forloop.counter }}</td>
                                 {% for field in form %}
-                                <td>{{ item|get_field_value:field.name|safe }}</td>
+                                <td>{{ item|get_field_value:field.name|upper|safe }}</td>
                                 {% endfor %}
                                 <td>
                                     <!-- <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#act-{{ item.id }}">Options </button>

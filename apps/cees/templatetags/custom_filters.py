@@ -16,11 +16,11 @@ def get_field_value(obj, attr_name):
         return os.path.basename(value.name)
     # Menangani datetime (mengonversi menjadi format yang lebih mudah dibaca)
     if isinstance(value, datetime.datetime):
-        return format(value, 'd/m/Y H:i')
+        return format(value, 'd-m-Y H:i')
     # Menangani date (mengonversi menjadi format yang lebih mudah dibaca)
     if isinstance(value, datetime.date):
         # return value.strftime('%d-%b-%Y').upper()
-        return format(value, 'd/m/Y')
+        return format(value, 'd-m-Y')
     # Menangani boolean (mengonversi menjadi 'Yes'/'No')
     if isinstance(value, bool):
         return "YES" if value else "NO"
