@@ -5,13 +5,12 @@
 
 <div class="tile mb-4">
     <div class="page-header">
-        <form method="post">
+        <form method="post" id="myForm">
         {% csrf_token %}
             <div class="row">
                 <div class="col-lg-12">
                     <h3 class="tile-title line-head">{{ card_title }}</h3>
                 </div>
-
                 <div class="col-lg-12 mb-3">
                     <div class="d-flex justify-content-end">
                         <div class="input-group" style="max-width: 300px;">
@@ -22,16 +21,21 @@
                         </div>
                     </div>
                 </div>
-                
                 <div class="table-responsive">
                     <table id="add-row" class="table table-sm table-hover table-bordered" >
                         <thead>
                             <tr>
                                 <th><input type="checkbox" id="check-all" {% if not items %}disabled{% endif %}></th>
                                 <th>#</th>
-                                {% for field in form %}
-                                    <th>{{ field.label }}</th>
-                                {% endfor %}
+                                {% if fields %}
+                                    {% for key, field in fields.items %}
+                                        <th>{{ field }}</th>
+                                    {% endfor %}
+                                {% else %}
+                                    {% for field in formset %}
+                                        <th>{{ field.label }}</th>
+                                    {% endfor %}
+                                {% endif %}
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -41,9 +45,15 @@
                             <tr>
                                 <td><input type="checkbox" class="select" name="select" value="{{ item.id }}"></td>
                                 <td class="clickable table-secondary">{{ forloop.counter }}</td>
-                                {% for field in form %}
-                                <td>{{ item|get_field_value:field.name|upper|safe }}</td>
-                                {% endfor %}
+                                {% if fields %}
+                                    {% for field in fields %}
+                                    <td>{{ item|get_field_value:field|upper|safe }}</td>
+                                    {% endfor %}
+                                {% else %}
+                                    {% for field in formset %}
+                                    <td>{{ item|get_field_value:field.name|upper|safe }}</td>
+                                    {% endfor %}
+                                {% endif %}
                                 <td>
                                     <!-- <button type="button" class="btn btn-sm btn-secondary dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#act-{{ item.id }}">Options </button>
                                     <div id="act-{{ item.id }}" class="collapse mt-1"> -->
@@ -60,7 +70,7 @@
                             <tr>
                                 <td></td>
                                 <td>{% comment %}{{ items|length|add:1 }}{% endcomment %}</td>
-                                {% for field in form %}
+                                {% for field in formset %}
                                     <td>{{ field }}</td>
                                 {% endfor %}
                                 <td class="align-middle">

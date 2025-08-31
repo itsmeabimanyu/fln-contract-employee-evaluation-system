@@ -42,20 +42,7 @@ class DataKaryawan(models.Model):
     nama = models.CharField(max_length=255)
     tempat_lahir = models.CharField(max_length=255)
     tanggal_lahir = models.DateField()
-    departemen = models.ForeignKey(Departemen, on_delete=models.CASCADE)
-    jabatan = models.ForeignKey(Jabatan, on_delete=models.CASCADE)
-    tgl_mulai_kontrak = models.DateField()
-    tgl_akhir_kontrak = models.DateField()
     is_active = models.BooleanField(default=True)
-    status_karyawan = models.CharField(
-        max_length=20,
-        choices=[
-            ('contract', 'CONTRACT'),
-            ('intern', 'INTERN'),
-        ],
-        default='kontrak'
-    )
-    keterangan = models.CharField(max_length=255, null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -66,6 +53,34 @@ class DataKaryawan(models.Model):
         self.deleted_at = timezone.now()  # Set waktu penghapusan
         self.save()
 
+class MasaKontrak(models.Model):
+    id = models.AutoField(primary_key=True)
+    karyawan = models.ForeignKey('DataKaryawan', on_delete=models.CASCADE, related_name='masa_kontrak')
+    departemen = models.ForeignKey(Departemen, on_delete=models.CASCADE)
+    jabatan = models.ForeignKey(Jabatan, on_delete=models.CASCADE)
+    status_karyawan = models.CharField(
+        max_length=20,
+        choices=[
+            ('contract', 'CONTRACT'),
+            ('intern', 'INTERN'),
+        ],
+        default='kontrak'
+    )
+    tgl_mulai_kontrak = models.DateField()
+    tgl_akhir_kontrak = models.DateField()
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.karyawan.nama} ({self.tgl_mulai_kontrak} - {self.tgl_akhir_kontrak})"
+
+    class Meta:
+        ordering = ['tgl_mulai_kontrak']
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()  # Set waktu penghapusan
+        self.save()
+    
 class KategoriPenilaian(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nama_penilaian = models.CharField(max_length=255)

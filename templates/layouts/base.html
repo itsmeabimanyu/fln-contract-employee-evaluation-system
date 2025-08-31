@@ -113,7 +113,7 @@
     <!-- Datatables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/v/bs5/dt-1.13.4/datatables.min.css">
     <script src="{% static 'js/plugins/datatables/datatables.min.js' %}"></script>
-    <script >
+    <script>
         $(document).ready(function() {
             // Add Row
             $('#add-row').DataTable({
@@ -193,7 +193,7 @@
                     <tr>
                         <td></td>
                         <td></td>
-                        {% for field in form %}
+                        {% for field in formset %}
                             <td>{{ field }}</td>
                         {% endfor %}
                         <td class="align-middle">
@@ -227,7 +227,8 @@
         const deleteButton = document.getElementById('delete-button');
         const deleteModalButton = document.getElementById('delete-modal-button');
 
-        const form = document.querySelector('form');
+        // const form = document.querySelector('form');
+        const form = document.querySelector('#myForm');
 
         // Fungsi untuk menghapus atribut required
         function disableRequiredFields() {
@@ -290,28 +291,34 @@
         toggleButtonVisibility();
     </script>
 
-    <!-- jQuery UI -->
-    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <!-- Datepicker flatpickr -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/airbnb.css">
     
-    <!-- Datepicker -->
     <script>
+        // Fungsi untuk inisialisasi datepicker
         function initDatepickers() {
-            // Inisialisasi untuk .bdatepicker
-            $('.bdatepicker').not('.hasDatepicker').datepicker({
-                dateFormat: 'dd-mm-yy',
-                changeMonth: true,
-                changeYear: true,
-                yearRange: "1900:-17",
-                maxDate: "-17Y"
-            });
+                // Inisialisasi untuk .bdatepicker
+                document.querySelectorAll('.bdatepicker').forEach(function(el) {
+                    flatpickr(el, {
+                    dateFormat: 'd-m-Y', // Format tanggal
+                    //minDate: "1900-01-01", // Batas minimum tanggal
+                    //maxDate: "today", // Maksimal tanggal adalah hari ini
+                    yearRange: "1900:-17", // Rentang tahun
+                    disableMobile: true, // Menonaktifkan tampilan mobile (opsional)
+                    });
+                });
 
-            // Inisialisasi untuk .datepicker
-            $('.datepicker').not('.hasDatepicker').datepicker({
-                dateFormat: 'dd-mm-yy',
-                changeMonth: true,
-                changeYear: true,
-                yearRange: "c-10:c+1"
-            });
+                // Inisialisasi untuk .datepicker
+                document.querySelectorAll('.datepicker').forEach(function(el) {
+                    flatpickr(el, {
+                    dateFormat: 'd-m-Y', // Format tanggal
+                    //minDate: "today", // Tanggal minimal adalah hari ini
+                    yearRange: "c-10:c+1", // Rentang tahun relatif
+                    disableMobile: true, // Menonaktifkan tampilan mobile (opsional)
+                    });
+                });
         }
     </script>
 

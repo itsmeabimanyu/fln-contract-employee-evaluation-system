@@ -9,6 +9,7 @@ urlpatterns = [
     path('master/department/', views.ListDepartemen.as_view(), name='list_departemen'),
     path('master/position/', views.ListJabatan.as_view(), name='list_jabatan'),
     path('master/employee/', views.ListKaryawan.as_view(), name='list_karyawan'),
+    path('master/employee/update/<uuid:pk>/', views.UpdateKaryawan.as_view(), name='update_karyawan'),
 ]
 
 # Tambahkan register/ hanya jika dalam mode DEBUG (development)

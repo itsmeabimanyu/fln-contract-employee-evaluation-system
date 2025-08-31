@@ -3,10 +3,11 @@ from django.views.generic import (
     CreateView, TemplateView, View, ListView,
     DetailView, UpdateView
 )
-from .models import Departemen, Jabatan, DataKaryawan
-from .forms import DepartemenForm, JabatanForm, DataKaryawanForm
+from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak
+from .forms import DepartemenForm, JabatanForm, DataKaryawanForm, UpdateDataKaryawanForm, MasaKontrakForm
 from django.shortcuts import get_object_or_404, redirect, render
 from datetime import datetime
+from django.urls import reverse, reverse_lazy
 
 # Create your views here.
 class ListDepartemen(TemplateView):
@@ -16,7 +17,7 @@ class ListDepartemen(TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Department'
         context['card_title'] = 'Department'
-        context['form'] = DepartemenForm
+        context['formset'] = DepartemenForm
         context['buttons_action'] = f"""
             <button type="button" data-bs-toggle="modal" data-bs-target="#modal-first" class="btn btn-danger" id="delete-button" ><i class="bi bi-trash3-fill"></i>Delete Checked</button>
             """
@@ -115,7 +116,7 @@ class ListJabatan(TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Position'
         context['card_title'] = 'Position'
-        context['form'] = JabatanForm
+        context['formset'] = JabatanForm
         context['buttons_action'] = f"""
             <button type="button" data-bs-toggle="modal" data-bs-target="#modal-first" class="btn btn-danger" id="delete-button" ><i class="bi bi-trash3-fill"></i>Delete Checked</button>
             """
@@ -216,7 +217,19 @@ class ListKaryawan(TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Employee'
         context['card_title'] = 'Employee'
-        context['form'] = DataKaryawanForm
+        context['formset'] = DataKaryawanForm
+        context['fields'] = {
+            'nik': 'NIK',
+            'nama': 'Name',
+            'tempat_lahir': 'Birthplace',
+            'tanggal_lahir': 'Birthdate',
+            'departemen': 'Department',
+            'jabatan': 'Position',
+            'tgl_mulai_kontrak': 'Start Date',
+            'tgl_akhir_kontrak': 'End Date',
+            'status_karyawan': 'Status',
+            }
+          
         context['buttons_action'] = f"""
             <button type="button" data-bs-toggle="modal" data-bs-target="#modal-first" class="btn btn-danger" id="delete-button" ><i class="bi bi-trash3-fill"></i>Delete Checked</button>
             """
@@ -231,13 +244,20 @@ class ListKaryawan(TemplateView):
         items = DataKaryawan.objects.filter(deleted_at__isnull=True)
         # Tambah tombol ke tiap baris data
         for item in items:
+            kontrak = MasaKontrak.objects.filter(karyawan=item.id, deleted_at__isnull=True).last()
+            item.departemen = kontrak.departemen if kontrak else None
+            item.jabatan = kontrak.jabatan if kontrak else None
+            item.tgl_mulai_kontrak = kontrak.tgl_mulai_kontrak if kontrak else None
+            item.tgl_akhir_kontrak = kontrak.tgl_akhir_kontrak if kontrak else None
+            item.status_karyawan = kontrak.status_karyawan if kontrak else None
+
             item.form_update = DataKaryawanForm(instance=item)
             item.buttons_action = [
                 f"""
                 <div class="bs-component">
                     <div class="btn-group" role="group" aria-label="Basic example">
                         <div class="btn-group" role="group" aria-label="Basic example">
-                            <button class="btn btn-sm btn-warning" type="button" data-bs-toggle='modal' data-bs-target='#modal-first-{item.id}' title="Edit"><i class="bi bi-pencil-square"></i></button>
+                            <button type='button' class='btn btn-sm btn-warning' onclick='window.location.href=\"{reverse('update_karyawan', args=[item.id])}\"'><i class="bi bi-pencil-square"></i></button>
                             <button class="btn btn-sm btn-danger" type="button" data-bs-toggle='modal' data-bs-target='#modal-second-{item.id}' title="Delete"><i class="bi bi-trash3-fill"></i></button>
                         </div>
                     </div>
@@ -272,10 +292,11 @@ class ListKaryawan(TemplateView):
             birthdates = self.request.POST.getlist('tanggal_lahir')
             departments = self.request.POST.getlist('departemen')
             positions = self.request.POST.getlist('jabatan')
+            employee_statuses = self.request.POST.getlist('status_karyawan')
             start_dates = self.request.POST.getlist('tgl_mulai_kontrak')
             end_dates = self.request.POST.getlist('tgl_akhir_kontrak')
 
-            for id, name, birthplace, birthdate, department, position, start_date, end_date in zip(ids, names, birthplaces, birthdates, departments, positions, start_dates, end_dates):
+            for id, name, birthplace, birthdate, department, position, employee_status, start_date, end_date in zip(ids, names, birthplaces, birthdates, departments, positions, employee_statuses, start_dates, end_dates):
                 try:
                     birthdate_parsed = datetime.strptime(birthdate, "%d-%m-%Y").date()
                     start_date_parsed = datetime.strptime(start_date, "%d-%m-%Y").date()
@@ -285,29 +306,65 @@ class ListKaryawan(TemplateView):
                     print(f"Format tanggal salah: {e}")
                     continue
                 
-                DataKaryawan.objects.create(
+                karyawan = DataKaryawan.objects.create(
                     nik=id,
                     nama=name,
                     tempat_lahir=birthplace,
                     tanggal_lahir=birthdate_parsed,
+                )
+
+                # Buat masa kontrak terkait
+                MasaKontrak.objects.create(
                     departemen=get_object_or_404(Departemen, pk=department),
                     jabatan=get_object_or_404(Jabatan, pk=position),
+                    karyawan=karyawan,
                     tgl_mulai_kontrak=start_date_parsed,
-                    tgl_akhir_kontrak=end_date_parsed
+                    tgl_akhir_kontrak=end_date_parsed,
+                    status_karyawan=employee_status
                 )
 
         elif action == 'edit':
             item_id = request.POST.get('item_id')
-            departemen = get_object_or_404(DataKaryawan, pk=item_id)
-            form = DataKaryawanForm(request.POST, instance=departemen)
+            data_karyawan = get_object_or_404(DataKaryawan, pk=item_id)
+            form = DataKaryawanForm(request.POST, instance=data_karyawan)
             
             if form.is_valid():
-                form.save()
+                karyawan = form.save()
+
+                # Ambil tanggal dari POST
+                start_date = request.POST.get('tgl_mulai_kontrak')
+                end_date = request.POST.get('tgl_akhir_kontrak')
+                employee_status = request.POST.get('status_karyawan')
+
+                try:
+                    tgl_mulai_parsed = datetime.strptime(start_date, "%d-%m-%Y").date()
+                    tgl_akhir_parsed = datetime.strptime(end_date, "%d-%m-%Y").date()
+                except ValueError as e:
+                    print(f"Format tanggal salah: {e}")
+                    # Bisa tambahkan error message ke context jika perlu
+                    return
+
+                # Cari masa kontrak terakhir (atau satu-satunya)
+                kontrak = karyawan.masa_kontrak.order_by('-tgl_mulai_kontrak').first()
+
+                if kontrak:
+                    # Update kontrak yang ada
+                    kontrak.tgl_mulai_kontrak = tgl_mulai_parsed
+                    kontrak.tgl_akhir_kontrak = tgl_akhir_parsed
+                    kontrak.status_karyawan = employee_status
+                    kontrak.save()
+                else:
+                    # Jika belum ada kontrak, buat baru
+                    MasaKontrak.objects.create(
+                        karyawan=karyawan,
+                        tgl_mulai_kontrak=tgl_mulai_parsed,
+                        tgl_akhir_kontrak=tgl_akhir_parsed
+                    )
 
         elif action == 'delete':
             item_id = self.request.POST.get('item_id')
-            departemen = get_object_or_404(DataKaryawan, pk=item_id)
-            departemen.soft_delete()
+            data_karyawan = get_object_or_404(DataKaryawan, pk=item_id)
+            data_karyawan.soft_delete()
 
         elif action == 'delete_checked':
             # Mendapatkan ID yang dipilih dari checkbox
@@ -329,3 +386,128 @@ class ListKaryawan(TemplateView):
     '''def get_success_url(self):
         # Redirect to a specific page after a successful form submission
         return reverse_lazy('invoice_create_manual')  # Replace with the name of the URL for your list page or another page.'''
+
+class UpdateKaryawan(TemplateView):
+    template_name = 'pages/list.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Ambil pk sekali dan simpan sebagai atribut instance
+        pk = kwargs.get('pk')
+        self.karyawan = DataKaryawan.objects.get(id=pk, deleted_at__isnull=True)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Update Employee'
+        context['card_title'] = 'Employee (Update)'
+        context['form'] = UpdateDataKaryawanForm(instance=self.karyawan)
+        context['formset'] = MasaKontrakForm  
+        context['buttons_action'] = f"""
+            <button type="button" data-bs-toggle="modal" data-bs-target="#modal-first" class="btn btn-danger" id="delete-button" ><i class="bi bi-trash3-fill"></i>Delete Checked</button>
+            """
+        context['act_modal'] = {
+            'Delete Checked': {
+                'modal_id': f'modal-first',
+                'icon' : '<i class="bi bi-trash-fill me-2"></i>',
+                'action_button': f'<button type="submit" name="action" value="delete_checked" class="btn btn-danger" id="delete-modal-button"><i class="bi bi-check-circle-fill me-2"></i>Delete</button>',
+            }
+        }
+
+        items = MasaKontrak.objects.filter(karyawan=self.karyawan, deleted_at__isnull=True)
+        # Tambah tombol ke tiap baris data
+        for item in items:
+            item.form_update = MasaKontrakForm(instance=item)
+            item.buttons_action = [
+                f"""
+                <div class="bs-component">
+                    <div class="btn-group" role="group" aria-label="Basic example">
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <button class="btn btn-sm btn-warning" type="button" data-bs-toggle='modal' data-bs-target='#modal-first-{item.id}' title="Edit"><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle='modal' data-bs-target='#modal-second-{item.id}' title="Delete"><i class="bi bi-trash3-fill"></i></button>
+                        </div>
+                    </div>
+                </div>
+                """
+                ]
+
+            # Content modal
+            item.modals_form = {
+                f'Update': {
+                    'modal_id': f'modal-first-{item.id}',
+                    'action_button': f'<button type="submit" name="action" value="edit" class="btn btn-warning"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>',
+                    'icon': f'<i class="bi bi-pencil-square me-2"></i>',
+                },
+                f'Delete': {
+                    'modal_id': f'modal-second-{item.id}',
+                    'type': 'delete',
+                    'icon' : '<i class="bi bi-trash-fill me-2"></i>',
+                    'action_button': f'<button type="submit" name="action" value="delete" class="btn btn-danger"><i class="bi bi-check-circle-fill me-2"></i>Delete</button>',
+                }
+            }
+        context['items'] = items
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        if action == 'save':
+            departments = self.request.POST.getlist('departemen')
+            positions = self.request.POST.getlist('jabatan')
+            employee_statuses = self.request.POST.getlist('status_karyawan')
+            start_dates = self.request.POST.getlist('tgl_mulai_kontrak')
+            end_dates = self.request.POST.getlist('tgl_akhir_kontrak')
+
+            for department, position, employee_status, start_date, end_date in zip(departments, positions, employee_statuses, start_dates, end_dates):
+                try:
+                    start_date_parsed = datetime.strptime(start_date, "%d-%m-%Y").date()
+                    end_date_parsed = datetime.strptime(end_date, "%d-%m-%Y").date()
+                except ValueError as e:
+                    # Kamu bisa log atau skip data yang gagal parsing
+                    print(f"Format tanggal salah: {e}")
+                    continue
+
+                MasaKontrak.objects.create(
+                    departemen=get_object_or_404(Departemen, pk=department),
+                    jabatan=get_object_or_404(Jabatan, pk=position),
+                    karyawan=self.karyawan,
+                    tgl_mulai_kontrak=start_date_parsed,
+                    tgl_akhir_kontrak=end_date_parsed,
+                    status_karyawan=employee_status
+                )
+
+        elif action == 'edit':
+            item_id = request.POST.get('item_id')
+            masa_kontrak = get_object_or_404(MasaKontrak, pk=item_id)
+            form = MasaKontrakForm(request.POST, instance=masa_kontrak)
+            
+            if form.is_valid():
+                form.save()
+
+        elif action == 'edit_form':
+            item_id = request.POST.get('item_id')
+            masa_kontrak = get_object_or_404(DataKaryawan, pk=item_id)
+            form = UpdateDataKaryawanForm(request.POST, instance=masa_kontrak)
+
+            if form.is_valid():
+                form.save()
+                return redirect('list_karyawan')
+            
+        elif action == 'delete':
+            item_id = self.request.POST.get('item_id')
+            masa_kontrak = get_object_or_404(MasaKontrak, pk=item_id)
+            masa_kontrak.soft_delete()
+
+        elif action == 'delete_checked':
+            # Mendapatkan ID yang dipilih dari checkbox
+            selected_ids = self.request.POST.getlist('select')
+            print(selected_ids)
+            if selected_ids:
+                items = MasaKontrak.objects.filter(id__in=selected_ids)
+                for item in items:
+                    item.soft_delete()
+
+        return redirect(self.request.META.get('HTTP_REFERER'))
+
+    def form_invalid(self, form):
+        response = super().form_invalid(form)
+        # messages.error(self.request, 'There was an error creating the Invoice. Please check the form and try again.')
+        return response
