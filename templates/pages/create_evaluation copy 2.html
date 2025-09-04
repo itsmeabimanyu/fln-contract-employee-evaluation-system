@@ -1,0 +1,292 @@
+{% extends 'layouts/base.html' %}
+{% load static custom_filters %}
+<!-- [ Main Content ] start -->
+{% block content %}
+
+<div class="tile mb-4">
+    <div class="page-header">
+        <form method="post" id="myForm">
+        {% csrf_token %}
+            <div class="row">
+                <div class="col-lg-12">
+                    <h3 class="tile-title line-head">{{ card_title }}</h3>
+                </div>
+                <div class="col-lg-12 p-3">{{ kategori_form.as_p }}</div>
+
+                <!-- Tempat semua pertanyaan -->
+                <div class="col-lg-12" id="rows-pertanyaan">
+                    <div class="row-set p-3 border mb-2 pertanyaan-block bg-light">
+                        <div class="p-1">
+                            <div class="tile-title-w-btn">
+                                <h5 class="question-number">Question ({% if pertanyaan_forms %}{{ pertanyaan_forms|length|add:"1" }}{% else %}1{% endif %})</h5>
+                                <button type="button" class="btn btn-sm btn-danger delete-pertanyaan"><i class="bi bi-trash3-fill"></i></button>
+                            </div><p class="line-head"></p>
+                            {{ pertanyaan_form.as_p }}
+                        </div>
+
+                        <!-- Tempat semua jawaban dalam 1 pertanyaan -->
+                        <div class="rows-jawaban">
+                            <div class="jawaban-item p-1">
+                                <ul>
+                                    <li><span class="jawaban-number mb-2">Answer #1:</span>
+                                        <table class="table table-light">
+                                            <thead>
+                                                <tr>
+                                                    {% for field in jawaban_form %}
+                                                    <th>{{ field.label_tag }}</th>
+                                                    {% endfor %}
+                                                    <th>Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    {% for field in jawaban_form %}
+                                                    <td>
+                                                        {{ field }}
+                                                        {% if field.help_text %}
+                                                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                                                        {% endif %}
+                                                        {% for error in field.errors %}
+                                                            <div class="text-danger">{{ error }}</div>
+                                                        {% endfor %}
+                                                    </td>
+                                                    {% endfor %}
+                                                    <td class="align-middle">
+                                                        <div class="bs-component">
+                                                            <div class="btn-group" role="group" aria-label="Basic example">
+                                                                <div class="btn-group" role="group" aria-label="Basic example">
+                                                                <button type="button" class="btn btn-sm btn-danger delete-jawaban"><i class="bi bi-trash3-fill"></i></button></td>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-sm btn-secondary add-jawaban"><i class="bi bi-plus-circle me-2"></i>Add Answer</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tombol tambah pertanyaan -->
+                <div class="col-lg-12 pt-2 pb-2 d-flex justify-content-end">
+                    <button type="button" id="add-pertanyaan" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-circle me-2"></i>Add Question
+                    </button>
+                </div>
+
+                <!-- Template pertanyaan baru -->
+                <template id="empty-row-template">
+                    <div class="row-set p-3 border mb-2 pertanyaan-block bg-light">
+                        <div class="p-1">
+                        <div class="tile-title-w-btn">
+                            <h5 class="question-number">Pertanyaan</h5>
+                            <button type="button" class="btn btn-sm btn-danger delete-pertanyaan">
+                            <i class="bi bi-trash3-fill"></i>
+                            </button>
+                        </div>
+                        <p class="line-head"></p>
+                        {{ pertanyaan_form.as_p }}
+                        </div>
+
+                        <div class="rows-jawaban">
+                        <div class="jawaban-item p-1">
+                            <ul>
+                            <li>
+                                <span class="jawaban-number mb-2">Jawaban #</span>
+                                <table class="table table-light">
+                                <thead>
+                                    <tr>
+                                    {% for field in jawaban_form %}
+                                        <th>{{ field.label_tag }}</th>
+                                    {% endfor %}
+                                    <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                    {% for field in jawaban_form %}
+                                        <td>
+                                        {{ field }}
+                                        {% if field.help_text %}
+                                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                                        {% endif %}
+                                        {% for error in field.errors %}
+                                            <div class="text-danger">{{ error }}</div>
+                                        {% endfor %}
+                                        </td>
+                                    {% endfor %}
+                                    <td class="align-middle">
+                                        <div class="bs-component">
+                                        <div class="btn-group" role="group" aria-label="Basic example">
+                                            <button type="button" class="btn btn-sm btn-danger delete-jawaban">
+                                            <i class="bi bi-trash3-fill"></i>
+                                            </button>
+                                        </div>
+                                        </div>
+                                    </td>
+                                    </tr>
+                                </tbody>
+                                </table>
+                            </li>
+                            </ul>
+                        </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-sm btn-secondary add-jawaban">
+                            <i class="bi bi-plus-circle me-2"></i>Add Answer
+                        </button>
+                        </div>
+                    </div>
+                </template>
+
+            </div>
+            <div class="tile-footer">
+                <div class="row">
+                    <div class="col-md-8 col-md-offset-3">
+                        <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block modal %}
+    {% include 'includes/modal.html' %}
+{% endblock modal %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addPertanyaanBtn = document.getElementById('add-pertanyaan');
+        const rowsPertanyaan = document.getElementById('rows-pertanyaan');
+        const template = document.getElementById('empty-row-template').innerHTML;
+
+        // Tambah pertanyaan baru
+        addPertanyaanBtn.addEventListener('click', function () {
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = template;
+
+            const newPertanyaan = wrapper.firstElementChild;
+
+            // Inisialisasi fungsi untuk blok baru
+            initAddJawaban(newPertanyaan);
+            initDeletePertanyaan(newPertanyaan);
+            initDeleteJawaban(newPertanyaan);
+
+            rowsPertanyaan.appendChild(newPertanyaan);
+
+            updateQuestionNumbers();
+            updateAnswerNumbers();
+            updateJawabanInputNames();
+        });
+
+        // Tambah jawaban
+        function initAddJawaban(container) {
+            const addJawabanBtn = container.querySelector('.add-jawaban');
+            const rowsJawaban = container.querySelector('.rows-jawaban');
+
+            // Ambil salah satu jawaban-item sebagai template, lalu hapus (optional)
+            const templateItem = rowsJawaban.querySelector('.jawaban-item');
+            const jawabanTemplate = templateItem.outerHTML;
+
+            addJawabanBtn.addEventListener('click', function () {
+                // Tambahkan jawaban baru dari template
+                rowsJawaban.insertAdjacentHTML('beforeend', jawabanTemplate);
+                updateAnswerNumbers();
+                initDeleteJawaban(container); // supaya tombol delete-nya aktif di jawaban baru
+                updateJawabanInputNames();
+            });
+        }
+
+        // Hapus pertanyaan
+        function initDeletePertanyaan(block) {
+            const btn = block.querySelector('.delete-pertanyaan');
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    block.remove();
+                    updateQuestionNumbers();
+                    updateAnswerNumbers();
+                });
+            }
+        }
+
+        // Hapus jawaban
+        function initDeleteJawaban(block) {
+            const deleteButtons = block.querySelectorAll('.delete-jawaban');
+            deleteButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const jawabanItem = btn.closest('.jawaban-item');
+                    if (jawabanItem) {
+                        jawabanItem.remove();
+                        updateAnswerNumbers();
+                    }
+                });
+            });
+        }
+
+        // Update nomor pertanyaan
+        function updateQuestionNumbers() {
+            const allQuestions = document.querySelectorAll('.pertanyaan-block');
+            allQuestions.forEach((block, index) => {
+                const numberLabel = block.querySelector('.question-number');
+                if (numberLabel) {
+                    numberLabel.textContent = `Question (${index + 1})`;
+                }
+            });
+        }
+
+        // Update nomor jawaban
+        function updateAnswerNumbers() {
+            const allQuestions = document.querySelectorAll('.pertanyaan-block');
+            allQuestions.forEach((question) => {
+                const jawabanItems = question.querySelectorAll('.jawaban-item');
+                jawabanItems.forEach((jawaban, index) => {
+                    const numberLabel = jawaban.querySelector('.jawaban-number');
+                    if (numberLabel) {
+                        numberLabel.textContent = `Answer #${index + 1}:`;
+                    }
+                });
+            });
+        }
+
+        function updateJawabanInputNames() {
+            const allQuestions = document.querySelectorAll('.pertanyaan-block');
+
+            allQuestions.forEach((questionBlock, qIndex) => {
+                const jawabanItems = questionBlock.querySelectorAll('.jawaban-item');
+
+                jawabanItems.forEach((jawabanItem) => {
+                    const teksInput = jawabanItem.querySelector('input[name="teks_jawaban"]');
+                    const poinInput = jawabanItem.querySelector('input[name="poin"]');
+
+                    if (teksInput) {
+                        teksInput.name = `jawaban_${qIndex}_teks[]`;
+                    }
+                    if (poinInput) {
+                        poinInput.name = `jawaban_${qIndex}_poin[]`;
+                    }
+                });
+            });
+        }
+
+
+        // Inisialisasi awal
+        const existingPertanyaan = document.querySelectorAll('.pertanyaan-block');
+        existingPertanyaan.forEach(block => {
+            initAddJawaban(block);
+            initDeletePertanyaan(block);
+            initDeleteJawaban(block);
+        });
+
+        updateQuestionNumbers();
+        updateAnswerNumbers();
+    });
+</script>
+{% endblock content %}

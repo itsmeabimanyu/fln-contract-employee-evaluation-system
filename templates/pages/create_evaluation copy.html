@@ -1,0 +1,83 @@
+{% extends 'layouts/base.html' %}
+{% load static custom_filters %}
+<!-- [ Main Content ] start -->
+{% block content %}
+
+<div class="tile mb-4">
+    <div class="page-header">
+        <form method="post" id="myForm">
+        {% csrf_token %}
+            <div class="row">
+                <div class="col-lg-12">
+                    <h3 class="tile-title line-head">{{ card_title }}</h3>
+                </div>
+                
+                <div class="p-3">{{ kategori_form.as_p }}</div>
+
+                <!-- Tempat semua pertanyaan -->
+                <div id="rows-pertanyaan">
+                    <div class="row-set p-3 border mb-2 pertanyaan-block">
+                        <div class="p-1">
+                        <h5 class="question-number">Question #1</h5>
+                        {{ pertanyaan_form.as_p }}
+                        </div>
+                        <!-- Tempat semua jawaban dalam 1 pertanyaan -->
+                        <div class="rows-jawaban">
+                            <div class="jawaban-item p-1">
+                                <span class="jawaban-number">Jawaban #1:</span>
+                                {{ jawaban_form.as_p }}
+                            </div>
+                        </div>
+                        <!-- Tombol tambah jawaban khusus untuk 1 pertanyaan -->
+                        <button type="button" class="btn btn-sm btn-secondary add-jawaban">+ Add Answer</button>
+                    </div>
+                </div>
+
+                <!-- Tombol tambah pertanyaan -->
+                <button type="button" id="add-pertanyaan" class="btn btn-outline-primary btn-sm mt-3">
+                + Add Pertanyaan
+                </button>
+
+                <!-- Template pertanyaan baru -->
+                <div id="empty-row-template" class="d-none">
+                    <div class="row-set p-3 border mb-2 pertanyaan-block">
+                        <div class="p-1">
+                        <h5 class="question-number">Question #</h5> <!-- Tambahkan ini -->
+                        {{ pertanyaan_form.as_p|safe }}
+                        </div>
+
+                        <div class="rows-jawaban">
+                            <div class="jawaban-item p-1">
+                                <span class="jawaban-number">Jawaban #</span>
+                                {{ jawaban_form.as_p|safe }}
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-secondary add-jawaban">+ Add Answer</button>
+                    </div>
+                </div>
+
+            </div>
+            <div class="tile-footer">
+                <div class="row">
+                    <div class="col-md-8 col-md-offset-3">
+                        <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        {{ buttons_action|safe }}
+                    </div>
+                </div>
+            </div>
+            {% block delete_checked %}
+                {% include 'includes/modal_delete_checked.html' %}
+            {% endblock delete_checked %}
+        </form>
+    </div>
+</div>
+
+
+{% block modal %}
+    {% include 'includes/modal.html' %}
+{% endblock modal %}
+
+
+{% endblock content %}

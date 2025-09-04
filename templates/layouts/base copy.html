@@ -14,7 +14,7 @@
     <meta property="og:url" content="http://pratikborsadiya.in/blog/vali-admin">
     <meta property="og:image" content="http://pratikborsadiya.in/blog/vali-admin/hero-social.png">
     <meta property="og:description" content="Vali is a responsive and free admin theme built with Bootstrap 5, SASS and PUG.js. It's fully customizable and modular.">
-    <title>CEES {% if title %}| {{ title }} {% endif %}</title>
+    <title>CEES</title>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -407,7 +407,65 @@
         }
     </script> -->
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const addPertanyaanBtn = document.getElementById('add-pertanyaan');
+    const rowsPertanyaan = document.getElementById('rows-pertanyaan');
+    const template = document.getElementById('empty-row-template').innerHTML;
 
+    addPertanyaanBtn.addEventListener('click', function () {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = template;
+
+        initAddJawaban(wrapper);
+
+        rowsPertanyaan.appendChild(wrapper.firstElementChild);
+        updateQuestionNumbers();
+        updateAnswerNumbers();
+    });
+
+    function initAddJawaban(container) {
+        const addJawabanBtn = container.querySelector('.add-jawaban');
+        const rowsJawaban = container.querySelector('.rows-jawaban');
+        const jawabanForm = rowsJawaban.querySelector('.jawaban-item');
+
+        addJawabanBtn.addEventListener('click', function () {
+            const newJawaban = jawabanForm.cloneNode(true);
+            rowsJawaban.appendChild(newJawaban);
+            updateAnswerNumbers();
+        });
+    }
+
+    function updateQuestionNumbers() {
+        const allQuestions = document.querySelectorAll('.pertanyaan-block');
+        allQuestions.forEach((block, index) => {
+            const numberLabel = block.querySelector('.question-number');
+            if (numberLabel) {
+                numberLabel.textContent = `Pertanyaan #${index + 1}`;
+            }
+        });
+    }
+
+    function updateAnswerNumbers() {
+        const allQuestions = document.querySelectorAll('.pertanyaan-block');
+        allQuestions.forEach((question) => {
+            const jawabanItems = question.querySelectorAll('.jawaban-item');
+            jawabanItems.forEach((jawaban, index) => {
+                const numberLabel = jawaban.querySelector('.jawaban-number');
+                if (numberLabel) {
+                    numberLabel.textContent = `Jawaban #${index + 1}:`;
+                }
+            });
+        });
+    }
+
+    // Inisialisasi awal
+    const existingPertanyaan = document.querySelectorAll('.pertanyaan-block');
+    existingPertanyaan.forEach(initAddJawaban);
+    updateQuestionNumbers();
+    updateAnswerNumbers();
+});
+</script>
 
 
 </body>

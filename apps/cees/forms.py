@@ -1,5 +1,5 @@
 from django import forms
-from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak
+from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban
 from django.utils import timezone
 
 class DepartemenForm(forms.ModelForm):
@@ -31,9 +31,6 @@ class JabatanForm(forms.ModelForm):
         for field_name, field in self.fields.items():
             field.widget.attrs.update({'class': 'form-control mt-2 mb-2'})
             field.widget.attrs.update({'autocomplete': 'off'})
-
-
-
 
 class DataKaryawanForm(forms.ModelForm):
     departemen = forms.ModelChoiceField(
@@ -161,3 +158,54 @@ class MasaKontrakForm(forms.ModelForm):
                 field.widget.attrs['class'] = 'form-select'
             else:
                 field.widget.attrs['class'] = 'form-control'
+
+class KategoriPenilaianForm(forms.ModelForm):
+    class Meta:
+        model = KategoriPenilaian
+        fields = ['nama_kategori', 'bobot_nilai']
+
+        labels = {
+            'nama_kategori': 'Category Name',
+            'bobot_nilai': 'Score Weight (%)'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control mt-2 mb-2'})
+            field.widget.attrs.update({'autocomplete': 'off'})
+
+class PertanyaanForm(forms.ModelForm):
+    class Meta:
+        model = Pertanyaan
+        fields = ['teks_pertanyaan']
+        labels = {
+            'teks_pertanyaan': 'Question Text'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({
+                'class': 'form-control mt-2 mb-2',
+                'autocomplete': 'off'
+            })
+
+class JawabanForm(forms.ModelForm):
+    class Meta:
+        model = Jawaban
+        fields = ['teks_jawaban', 'poin']
+        labels = {
+            'teks_jawaban': 'Answer Text',
+            'poin': 'Point'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({
+                'class': 'form-control mt-2 mb-2',
+                'autocomplete': 'off'
+            })
+
+

@@ -1,0 +1,235 @@
+{% extends 'layouts/base.html' %}
+{% load static custom_filters %}
+<!-- [ Main Content ] start -->
+{% block content %}
+
+<div class="tile mb-4">
+    <div class="page-header">
+        <form method="post" id="myForm">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-lg-12">
+                    <h3 class="tile-title line-head">{{ card_title }}</h3>
+                </div>
+                <div class="col-lg-12 p-3">{{ kategori_form.as_p }}</div>
+            </div>
+
+            <!-- Create -->
+            <div class="row">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover table-bordered add-row">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Pertanyaan</th>
+                                <th>Jawaban</th>
+                            </tr>
+                        </thead>
+                        <tbody class="add-row-tbody">
+                            <tr class="template-row">
+                                <td class="row-number">1</td>
+                                {% for field in pertanyaan_form %}
+                                <td>{{ field }} <button type="button" class="btn btn-danger btn-sm delete-row-btn">Hapus</button></td>
+                                {% endfor %}
+                                <td>
+                                    <table class="table table-sm table-bordered mb-0 jawaban-table">
+                                        <thead>
+                                        <tr>
+                                            {% for field in jawaban_form %}
+                                            <td>{{ field.label }}</td>
+                                            {% endfor %}
+                                            <td>Aksi</td>  {# Kolom untuk tombol hapus #}
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr class="jawaban-row">
+                                            {% for field in jawaban_form %}
+                                            <td>{{ field }}</td>
+                                            {% endfor %}
+
+                                        <td>
+                                            <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn">Hapus</button>
+                                        </td>
+                                        </tr>
+                                         
+                                        </tbody>
+                                    </table>
+                                    <button type="button" class="btn btn-secondary btn-sm add-jawaban-btn mt-1">Tambah Jawaban</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <button type="button" class="btn btn-primary add-row-btn">Tambah Baris</button>
+                </div>
+            </div>
+            <!-- End Create -->
+
+        </form>
+    </div>
+</div>
+
+{% block modal %}
+    {% include 'includes/modal.html' %}
+{% endblock modal %}
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function () {
+        function updateRowNumbers() {
+            $('.add-row-tbody tr.template-row').each(function (index) {
+                $(this).find('.row-number').text(index + 1);
+            });
+        }
+
+        $('.add-row-btn').click(function () {
+            let $templateRow = $('.template-row').first();
+            let $newRow = $templateRow.clone();
+
+            // Reset semua input di row utama dan table nested (jawaban)
+            $newRow.find('input, select, textarea').each(function () {
+                $(this).val('');
+            });
+
+            // Append ke tbody
+            $('.add-row-tbody').append($newRow);
+            updateRowNumbers();
+        });
+
+        // Tombol hapus baris (dari baris utama)
+        $('.add-row-tbody').on('click', '.delete-row-btn', function () {
+            if ($('.add-row-tbody tr.template-row').length > 1) {
+                $(this).closest('tr.template-row').remove();
+                updateRowNumbers();
+            } else {
+                alert("Minimal satu baris harus ada.");
+            }
+        });
+
+        // Tambah baris jawaban
+        $('.add-row-tbody').on('click', '.add-jawaban-btn', function () {
+            let $tbody = $(this).closest('td').find('.jawaban-table tbody');
+            let $firstRow = $tbody.find('tr.jawaban-row').first();
+            let $newRow = $firstRow.clone(true);
+
+            // Reset input dalam baris jawaban
+            $newRow.find('input, select, textarea').val('');
+            $tbody.append($newRow);
+        });
+
+        // Hapus baris jawaban
+        $('.add-row-tbody').on('click', '.delete-jawaban-btn', function () {
+            let $tbody = $(this).closest('tbody');
+            let $allRows = $tbody.find('tr.jawaban-row');
+
+            if ($allRows.length > 1) {
+                $(this).closest('tr.jawaban-row').remove();
+            } else {
+                alert('Minimal satu jawaban harus ada.');
+            }
+        });
+    });
+</script>
+
+<script>
+    /*
+    // Tambah baris pertanyaan
+    document.addEventListener('click', function(event) {
+        if(event.target.classList.contains('add-row-btn')) {
+            const tbody = document.querySelector('.add-row-tbody');
+            const templateRow = tbody.querySelector('.template-row');
+
+            // Clone baris template
+            const newRow = templateRow.cloneNode(true);
+
+            // Reset input
+            const inputs = newRow.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                if(input.type === 'checkbox' || input.type === 'radio') {
+                    input.checked = false;
+                } else {
+                    input.value = '';
+                }
+            });
+
+            newRow.classList.remove('template-row');
+
+            // Update nomor baris baru
+            const rows = tbody.querySelectorAll(':scope > tr:not(.template-row)');
+            let lastNumber = 1;
+            if(rows.length > 0) {
+                const lastRow = rows[rows.length - 1];
+                const nomorCell = lastRow.querySelector('.row-number');
+                lastNumber = nomorCell ? parseInt(nomorCell.textContent) : 0;
+            }
+
+            const nomorCellNewRow = newRow.querySelector('.row-number');
+            if(nomorCellNewRow) {
+                nomorCellNewRow.textContent = lastNumber + 1;
+            }
+
+            tbody.appendChild(newRow);
+        }
+    });
+
+    // Tambah baris jawaban (nested)
+    document.addEventListener('click', function(event) {
+        if(event.target.classList.contains('add-nested-row-btn')) {
+            const mainRow = event.target.closest('tr');
+            if(!mainRow) return;
+
+            const jawabanTable = mainRow.querySelector('.jawaban-table tbody');
+            if(!jawabanTable) return;
+
+            const lastNestedRow = jawabanTable.querySelector('tr:last-child');
+            if(!lastNestedRow) return;
+
+            const newNestedRow = lastNestedRow.cloneNode(true);
+
+            // Reset input di nested row baru
+            const inputs = newNestedRow.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                if(input.type === 'checkbox' || input.type === 'radio') {
+                    input.checked = false;
+                } else {
+                    input.value = '';
+                }
+            });
+            jawabanTable.appendChild(newNestedRow);
+        }
+    });
+
+    // Hapus baris pertanyaan dengan validasi minimal 1 baris
+    document.addEventListener('click', function(event) {
+        if (event.target.classList.contains('delete-row-btn')) {
+            const tbody = document.querySelector('.add-row-tbody');
+
+            // Ambil hanya baris utama (langsung di bawah tbody)
+            const mainRows = tbody.querySelectorAll(':scope > tr');
+
+            if (mainRows.length <= 1) {
+                alert('Tidak bisa menghapus, minimal harus ada 1 baris pertanyaan.');
+                return;
+            }
+
+            const row = event.target.closest('tr');
+            if (row) {
+                row.remove();
+            }
+
+            // Update nomor baris
+            const updatedRows = tbody.querySelectorAll(':scope > tr');
+            updatedRows.forEach((r, index) => {
+                const nomorCell = r.querySelector('.row-number');
+                if (nomorCell) {
+                    nomorCell.textContent = index + 1;
+                }
+            });
+        }
+    });
+    */
+
+</script>
+
+
+{% endblock content %}

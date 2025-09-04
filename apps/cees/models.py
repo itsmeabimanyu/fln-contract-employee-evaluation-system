@@ -83,19 +83,39 @@ class MasaKontrak(models.Model):
     
 class KategoriPenilaian(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    nama_penilaian = models.CharField(max_length=255)
+    nama_kategori = models.CharField(max_length=255)
+    bobot_nilai = models.PositiveIntegerField()
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['nama_kategori']
 
     def __str__(self):
-        return self.nama_penilaian
+        return self.nama_kategori
 
 class Pertanyaan(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     kategori = models.ForeignKey(KategoriPenilaian, on_delete=models.CASCADE)
-    nama_pertanyaan = models.CharField(max_length=255)
+    teks_pertanyaan = models.CharField(max_length=255)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.nama_pertanyaan
+        return self.teks_pertanyaan
+    
+class Jawaban(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    pertanyaan = models.ForeignKey(Pertanyaan, on_delete=models.CASCADE)
+    teks_jawaban = models.CharField(max_length=255)
+    poin = models.PositiveIntegerField()
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return self.teks_jawaban
+    
+"""
 class HasilPenilaian(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     karyawan = models.ForeignKey(DataKaryawan, on_delete=models.CASCADE)
@@ -104,4 +124,5 @@ class HasilPenilaian(models.Model):
 
     def __str__(self):
         return f"{self.karyawan.nama} - {self.pertanyaan.nama_pertanyaan}"
+"""
 

@@ -3,8 +3,8 @@ from django.views.generic import (
     CreateView, TemplateView, View, ListView,
     DetailView, UpdateView
 )
-from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak
-from .forms import DepartemenForm, JabatanForm, DataKaryawanForm, UpdateDataKaryawanForm, MasaKontrakForm
+from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban
+from .forms import DepartemenForm, JabatanForm, DataKaryawanForm, UpdateDataKaryawanForm, MasaKontrakForm, KategoriPenilaianForm, PertanyaanForm, JawabanForm
 from django.shortcuts import get_object_or_404, redirect, render
 from datetime import datetime
 from django.urls import reverse, reverse_lazy
@@ -398,7 +398,7 @@ class UpdateKaryawan(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Update Employee'
+        context['title'] = 'Employee Update'
         context['card_title'] = 'Employee (Update)'
         context['form'] = UpdateDataKaryawanForm(instance=self.karyawan)
         context['formset'] = MasaKontrakForm  
@@ -511,3 +511,184 @@ class UpdateKaryawan(TemplateView):
         response = super().form_invalid(form)
         # messages.error(self.request, 'There was an error creating the Invoice. Please check the form and try again.')
         return response
+    
+'''
+class CreateKategori(TemplateView):
+    template_name = 'pages/create_evaluation.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Evaluation'
+        context['card_title'] = 'Evaluation'
+        context['kategori_form'] = KategoriPenilaianForm
+        context['pertanyaan_form'] = PertanyaanForm
+        context['jawaban_form'] = JawabanForm
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        if action == 'save':
+            category = request.POST.get('nama_kategori')
+            score_weight = request.POST.get('bobot_nilai')
+            questions = request.POST.getlist('teks_pertanyaan')
+
+            # print("Kategori:", category)
+            # print("Bobot:", score_weight)
+
+            kategori = KategoriPenilaian.objects.create(
+                nama_kategori=category,
+                bobot_nilai=score_weight
+            )
+            # Loop pertanyaan
+            for i, question in enumerate(questions):
+                # print(f"Pertanyaan {i+1}: {question}")
+
+                # Ambil jawaban dan poin khusus pertanyaan ke-i
+                jawaban_teks_list = request.POST.getlist(f'jawaban_{i}_teks[]')
+                jawaban_poin_list = request.POST.getlist(f'jawaban_{i}_poin[]')
+
+                pertanyaan = Pertanyaan.objects.create(teks_pertanyaan=question, kategori=kategori)
+
+                for j, (teks, poin) in enumerate(zip(jawaban_teks_list, jawaban_poin_list)):
+                    # print(f"  Jawaban {j+1}: {teks} (Poin: {poin})")
+                    Jawaban.objects.create(pertanyaan=pertanyaan, teks_jawaban=teks, poin=poin)
+        return redirect(self.request.META.get('HTTP_REFERER'))
+'''
+
+class ListKategori(TemplateView):
+    template_name = 'pages/create.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Evaluation'
+        context['card_title'] = 'Evaluation'
+        context['formset'] = KategoriPenilaianForm
+        items = KategoriPenilaian.objects.filter(deleted_at__isnull=True)
+        for item in items:
+            item.buttons_action = [
+                f"""
+                <div class="bs-component">
+                    <div class="btn-group" role="group" aria-label="Basic example">
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <button type='button' class='btn btn-sm btn-warning' onclick='window.location.href=\"{reverse('update_kategori', args=[item.id])}\"'><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle='modal' data-bs-target='#modal-second-{item.id}' title="Delete"><i class="bi bi-trash3-fill"></i></button>
+                        </div>
+                    </div>
+                </div>
+                """
+                ]
+        context['items'] = items
+        return context
+    
+'''
+class UpdateKategori(TemplateView):
+    template_name = 'pages/update_evaluation.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Ambil pk sekali dan simpan sebagai atribut instance
+        pk = kwargs.get('pk')
+        self.kategori = KategoriPenilaian.objects.get(id=pk, deleted_at__isnull=True)
+        return super().dispatch(request, *args, **kwargs)
+    
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Evaluation'
+        context['card_title'] = 'Evaluation'
+        context['kategori_form'] = KategoriPenilaianForm(instance=self.kategori)
+        context['pertanyaan_form'] = PertanyaanForm
+        context['jawaban_form'] = JawabanForm
+
+        # Ambil semua pertanyaan terkait kategori ini
+        pertanyaan_terkait = Pertanyaan.objects.filter(
+            kategori=self.kategori, deleted_at__isnull=True
+        )
+
+        # Cara 1
+        """
+        pertanyaan_forms = []
+        for item in pertanyaan_terkait:
+            pertanyaan_forms.append({
+                'form': PertanyaanForm(instance=item),
+                'jawaban_list': Jawaban.objects.filter(pertanyaan=item, deleted_at__isnull=True)
+            })
+
+        context['pertanyaan_forms'] = pertanyaan_forms
+        """
+
+        Cara 2
+        context['pertanyaan_forms'] = [
+            {
+                'form_pertanyaan': PertanyaanForm(instance=pertanyaan),
+                # 'jawaban_list': Jawaban.objects.filter(pertanyaan=pertanyaan, deleted_at__isnull=True)
+                'jawaban_forms': [
+                    JawabanForm(instance=jawaban)
+                    for jawaban in Jawaban.objects.filter(pertanyaan=pertanyaan, deleted_at__isnull=True)
+                ],
+
+                'buttons_action' : [
+                f"""
+                <div class="bs-component">
+                    <div class="btn-group" role="group" aria-label="Basic example">
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle='modal' data-bs-target='#modal-second-{pertanyaan.id}' title="Delete"><i class="bi bi-trash3-fill"></i></button>
+                        </div>
+                    </div>
+                </div>
+                """
+                ]
+            }
+            for pertanyaan in pertanyaan_terkait
+        ]
+
+        # Pertanyaan dan jawaban sebagai initial (bukan lewat form Django langsung)
+        # context['pertanyaan_terkait'] = Pertanyaan.objects.filter(kategori=self.kategori, deleted_at__isnull=True).prefetch_related('jawaban_set')
+        return context
+'''
+
+class CreateKategori(TemplateView):
+    template_name = 'pages/create_evaluation.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Evaluation'
+        context['card_title'] = 'Evaluation'
+        context['kategori_form'] = KategoriPenilaianForm
+        context['pertanyaan_form'] = PertanyaanForm
+        context['jawaban_form'] = JawabanForm
+
+        return context
+
+class UpdateKategori(TemplateView):
+    template_name = 'pages/update_evaluation.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Ambil pk sekali dan simpan sebagai atribut instance
+        pk = kwargs.get('pk')
+        self.kategori = KategoriPenilaian.objects.get(id=pk, deleted_at__isnull=True)
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Evaluation'
+        context['card_title'] = 'Evaluation (Update)'
+        context['kategori_form'] = KategoriPenilaianForm(instance=self.kategori)
+
+        # Ambil semua pertanyaan terkait kategori ini
+        pertanyaan_terkait = Pertanyaan.objects.filter(kategori=self.kategori, deleted_at__isnull=True)
+        for item in pertanyaan_terkait:
+            item.pertanyaan_form = PertanyaanForm(instance=item)
+            jawaban_list = Jawaban.objects.filter(pertanyaan=item, deleted_at__isnull=True)
+            item.jawaban_form = [
+                JawabanForm(initial={
+                    'teks_jawaban': jawaban.teks_jawaban,
+                    'poin': jawaban.poin
+                })
+                for jawaban in jawaban_list
+            ]
+
+        context['items'] = pertanyaan_terkait
+        return context
+    
+
+    
