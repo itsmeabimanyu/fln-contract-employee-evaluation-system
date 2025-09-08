@@ -199,13 +199,19 @@ class JawabanForm(forms.ModelForm):
             'teks_jawaban': 'Answer Text',
             'poin': 'Point'
         }
-
+ 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            field.widget.attrs.update({
-                'class': 'form-control mt-2 mb-2',
-                'autocomplete': 'off'
-            })
+            if field_name == 'teks_jawaban':
+                field.widget.attrs.update({
+                    'placeholder': 'Enter the answer text here...',
+                    'class': 'form-control jawaban-teks'
+                })
+            elif field_name == 'poin':
+                field.widget.attrs.update({
+                    'placeholder': 'Enter point value...',
+                    'class': 'form-control jawaban-poin'
+                })
 
 

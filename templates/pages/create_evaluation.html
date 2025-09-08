@@ -26,33 +26,45 @@
                             </tr>
                         </thead>
                         <tbody class="add-row-tbody">
+
+                            <!-- ListView -->
+                            {% for item in items %}
                             <tr class="template-row">
-                                <td class="row-number">1</td>
+                                <td class="row-number">{{ forloop.counter }}</td>
+                                {% for field in item.pertanyaan_form %}
+                                <td>{{ field }}</td>
+                                {% endfor %}
+                                <td>
+                                    <table class="table table-sm table-bordered mb-0 jawaban-table">
+                                        {% for form in item.jawaban_form %}
+                                        <tr class="jawaban-row">
+                                            {% for field in form %}
+                                            <td>{{ field }}</td>
+                                            {% endfor %}
+                                        </tr>
+                                        {% endfor %}
+                                    </table>
+                                    <button type="button" class="btn btn-secondary btn-sm add-jawaban-btn mt-1">Tambah Jawaban</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            <!-- End ListtView -->
+
+                            <tr class="template-row">
+                                <td class="row-number">{% if items %}{{ items|length|add:"1" }}{% else %}1{% endif %}</td>
                                 {% for field in pertanyaan_form %}
                                 <td>{{ field }} <button type="button" class="btn btn-danger btn-sm delete-row-btn">Hapus</button></td>
                                 {% endfor %}
                                 <td>
                                     <table class="table table-sm table-bordered mb-0 jawaban-table">
-                                        <thead>
-                                        <tr>
-                                            {% for field in jawaban_form %}
-                                            <td>{{ field.label }}</td>
-                                            {% endfor %}
-                                            <td>Aksi</td>  {# Kolom untuk tombol hapus #}
-                                        </tr>
-                                        </thead>
-                                        <tbody>
                                         <tr class="jawaban-row">
                                             {% for field in jawaban_form %}
                                             <td>{{ field }}</td>
                                             {% endfor %}
-
-                                        <td>
-                                            <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn">Hapus</button>
-                                        </td>
+                                            <td class="align-middle">
+                                                <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn">Hapus</button>
+                                            </td>
                                         </tr>
-                                         
-                                        </tbody>
                                     </table>
                                     <button type="button" class="btn btn-secondary btn-sm add-jawaban-btn mt-1">Tambah Jawaban</button>
                                 </td>
@@ -63,6 +75,14 @@
                 </div>
             </div>
             <!-- End Create -->
+            
+            <div class="tile-footer">
+                <div class="row">
+                    <div class="col-md-8 col-md-offset-3">
+                        <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
+                    </div>
+                </div>
+            </div>
 
         </form>
     </div>
@@ -72,13 +92,25 @@
     {% include 'includes/modal.html' %}
 {% endblock modal %}
 
-
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     $(document).ready(function () {
         function updateRowNumbers() {
             $('.add-row-tbody tr.template-row').each(function (index) {
                 $(this).find('.row-number').text(index + 1);
+            });
+        }
+
+        function updateInputNames() {
+            $('.add-row-tbody tr.template-row').each(function (rowIndex) {
+                // Pertanyaan
+                $(this).find('input[name="teks_pertanyaan"]').attr('name', 'teks_pertanyaan');
+
+                // Jawaban
+                $(this).find('.jawaban-row').each(function () {
+                    $(this).find('input.jawaban-teks').attr('name', `jawaban_${rowIndex}_teks[]`);
+                    $(this).find('input.jawaban-poin').attr('name', `jawaban_${rowIndex}_poin[]`);
+                });
             });
         }
 
@@ -94,6 +126,7 @@
             // Append ke tbody
             $('.add-row-tbody').append($newRow);
             updateRowNumbers();
+            updateInputNames();
         });
 
         // Tombol hapus baris (dari baris utama)
@@ -101,6 +134,7 @@
             if ($('.add-row-tbody tr.template-row').length > 1) {
                 $(this).closest('tr.template-row').remove();
                 updateRowNumbers();
+                updateInputNames();
             } else {
                 alert("Minimal satu baris harus ada.");
             }
@@ -115,6 +149,7 @@
             // Reset input dalam baris jawaban
             $newRow.find('input, select, textarea').val('');
             $tbody.append($newRow);
+            updateInputNames();
         });
 
         // Hapus baris jawaban
@@ -124,10 +159,14 @@
 
             if ($allRows.length > 1) {
                 $(this).closest('tr.jawaban-row').remove();
+                updateInputNames();
             } else {
                 alert('Minimal satu jawaban harus ada.');
             }
         });
+
+        // Awal
+        updateInputNames();
     });
 </script>
 

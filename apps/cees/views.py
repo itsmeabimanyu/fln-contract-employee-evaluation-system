@@ -658,9 +658,39 @@ class CreateKategori(TemplateView):
         context['jawaban_form'] = JawabanForm
 
         return context
+    
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        if action == 'save':
+            category = request.POST.get('nama_kategori')
+            score_weight = request.POST.get('bobot_nilai')
+            questions = request.POST.getlist('teks_pertanyaan')
+
+            # print("Kategori:", category)
+            # print("Bobot:", score_weight)
+
+            kategori = KategoriPenilaian.objects.create(
+                nama_kategori=category,
+                bobot_nilai=score_weight
+            )
+            # Loop pertanyaan
+            for i, question in enumerate(questions):
+                # print(f"Pertanyaan {i+1}: {question}")
+
+                # Ambil jawaban dan poin khusus pertanyaan ke-i
+                jawaban_teks_list = request.POST.getlist(f'jawaban_{i}_teks[]')
+                jawaban_poin_list = request.POST.getlist(f'jawaban_{i}_poin[]')
+
+                pertanyaan = Pertanyaan.objects.create(teks_pertanyaan=question, kategori=kategori)
+
+                for j, (teks, poin) in enumerate(zip(jawaban_teks_list, jawaban_poin_list)):
+                    # print(f"  Jawaban {j+1}: {teks} (Poin: {poin})")
+                    Jawaban.objects.create(pertanyaan=pertanyaan, teks_jawaban=teks, poin=poin)
+
+        return redirect(self.request.META.get('HTTP_REFERER'))
 
 class UpdateKategori(TemplateView):
-    template_name = 'pages/update_evaluation.html'
+    template_name = 'pages/create_evaluation.html'
 
     def dispatch(self, request, *args, **kwargs):
         # Ambil pk sekali dan simpan sebagai atribut instance
@@ -672,6 +702,8 @@ class UpdateKategori(TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Evaluation'
         context['card_title'] = 'Evaluation (Update)'
+        context['pertanyaan_form'] = PertanyaanForm
+        context['jawaban_form'] = JawabanForm
         context['kategori_form'] = KategoriPenilaianForm(instance=self.kategori)
 
         # Ambil semua pertanyaan terkait kategori ini
