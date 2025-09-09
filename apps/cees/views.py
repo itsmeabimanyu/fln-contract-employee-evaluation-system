@@ -736,6 +736,19 @@ class UpdateKategori(TemplateView):
         
         action = request.POST.get('action')
         if action == 'save':
+
+            # hapus jawaban
+            deleted_jawaban_ids = request.POST.getlist('deleted_jawaban_ids')
+            if deleted_jawaban_ids:
+                for jawaban in Jawaban.objects.filter(id__in=deleted_jawaban_ids):
+                    jawaban.soft_delete()
+
+            # hapus pertanyaan
+            deleted_pertanyaan_ids = request.POST.getlist('deleted_pertanyaan_ids')
+            if deleted_pertanyaan_ids:
+                for pertanyaan in Pertanyaan.objects.filter(id__in=deleted_pertanyaan_ids):
+                    pertanyaan.soft_delete()
+
             kategori_form = KategoriPenilaianForm(request.POST, instance=self.kategori)
             if kategori_form.is_valid():
                 kategori_form.save()

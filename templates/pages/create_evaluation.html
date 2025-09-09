@@ -32,8 +32,15 @@
                             <tr class="template-row">
                                 <td class="row-number">{{ forloop.counter }}</td>
                                 {% for p_form in item.pertanyaan_form %}
-                                <td>{{ p_form }}</td>
+                                    <td>
+                                    {{ p_form }}
+                                    {% if forloop.first %}
+                                        <input type="hidden" name="pertanyaan_ids" value="{{ item.id }}">
+                                        <button type="button" class="btn btn-danger btn-sm delete-row-btn">Hapus</button>
+                                    {% endif %}
+                                </td>
                                 {% endfor %}
+                                
                                 <td>
                                     <table class="table table-sm table-bordered mb-0 jawaban-table">
                                         {% for j_form in item.jawaban_form %}
@@ -42,6 +49,7 @@
                                             <td>{{ field }}</td>
                                             {% endfor %}
                                             <td class="align-middle">
+                                                <input type="hidden" name="jawaban_ids" value="{{ j_form.instance.id }}">
                                                 <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn">Hapus</button>
                                             </td>
                                         </tr>
@@ -133,16 +141,35 @@
             updateInputNames();
         });
 
-        // Tombol hapus baris (dari baris utama)
+        // Hapus baris pertanyaan
         $('.add-row-tbody').on('click', '.delete-row-btn', function () {
-            if ($('.add-row-tbody tr.template-row').length > 1) {
-                $(this).closest('tr.template-row').remove();
-                updateRowNumbers();
-                updateInputNames();
-            } else {
+            const $row = $(this).closest('tr.template-row');
+            const rowCount = $('.add-row-tbody tr.template-row').length;
+
+            if (rowCount <= 1) {
                 alert("Minimal satu baris harus ada.");
+                return;
             }
+
+            // Ambil ID pertanyaan dari hidden input
+            const pertanyaanId = $row.find('input[name="pertanyaan_ids"]').val();
+            if (pertanyaanId) {
+                // Tambahkan input hidden ke <form> agar ID ini bisa dihapus di backend
+                $('<input>', {
+                    type: 'hidden',
+                    name: 'deleted_pertanyaan_ids',
+                    value: pertanyaanId
+                }).appendTo('form');
+            }
+
+            // Hapus baris dari DOM
+            $row.remove();
+
+            // Update penomoran dan input name
+            updateRowNumbers();
+            updateInputNames();
         });
+
 
         // Tambah baris jawaban
         $('.add-row-tbody').on('click', '.add-jawaban-btn', function () {
@@ -158,15 +185,28 @@
 
         // Hapus baris jawaban
         $('.add-row-tbody').on('click', '.delete-jawaban-btn', function () {
-            let $tbody = $(this).closest('tbody');
-            let $allRows = $tbody.find('tr.jawaban-row');
+            const $row = $(this).closest('tr.jawaban-row');
+            const $tbody = $row.closest('tbody');
+            const rowCount = $tbody.find('tr.jawaban-row').length;
 
-            if ($allRows.length > 1) {
-                $(this).closest('tr.jawaban-row').remove();
-                updateInputNames();
-            } else {
+            if (rowCount <= 1) {
                 alert('Minimal satu jawaban harus ada.');
+                return;
             }
+
+            // Ambil ID jawaban kalau ada
+            const jawabanId = $row.find('input[name="jawaban_ids"]').val();
+            if (jawabanId) {
+                // Tambahkan ke form sebagai data untuk dihapus
+                $('<input>', {
+                    type: 'hidden',
+                    name: 'deleted_jawaban_ids',
+                    value: jawabanId
+                }).appendTo('form');
+            }
+
+            $row.remove();
+            updateInputNames();
         });
 
         // Awal

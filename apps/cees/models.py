@@ -103,6 +103,10 @@ class Pertanyaan(models.Model):
 
     def __str__(self):
         return self.teks_pertanyaan
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()  # Set waktu penghapusan
+        self.save()
     
 class Jawaban(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -114,6 +118,10 @@ class Jawaban(models.Model):
 
     def __str__(self):
         return self.teks_jawaban
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()  # Set waktu penghapusan
+        self.save()
     
     class Meta:
         ordering = ['poin']
