@@ -31,16 +31,19 @@
                             {% for item in items %}
                             <tr class="template-row">
                                 <td class="row-number">{{ forloop.counter }}</td>
-                                {% for field in item.pertanyaan_form %}
-                                <td>{{ field }}</td>
+                                {% for p_form in item.pertanyaan_form %}
+                                <td>{{ p_form }}</td>
                                 {% endfor %}
                                 <td>
                                     <table class="table table-sm table-bordered mb-0 jawaban-table">
-                                        {% for form in item.jawaban_form %}
+                                        {% for j_form in item.jawaban_form %}
                                         <tr class="jawaban-row">
-                                            {% for field in form %}
+                                            {% for field in j_form %}
                                             <td>{{ field }}</td>
                                             {% endfor %}
+                                            <td class="align-middle">
+                                                <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn">Hapus</button>
+                                            </td>
                                         </tr>
                                         {% endfor %}
                                     </table>
@@ -50,16 +53,17 @@
                             {% endfor %}
                             <!-- End ListtView -->
 
-                            <tr class="template-row">
+                            <!-- Create new row pertanyaan -->
+                            <tr class="template-row new-template-row">
                                 <td class="row-number">{% if items %}{{ items|length|add:"1" }}{% else %}1{% endif %}</td>
-                                {% for field in pertanyaan_form %}
-                                <td>{{ field }} <button type="button" class="btn btn-danger btn-sm delete-row-btn">Hapus</button></td>
+                                {% for p_form in pertanyaan_form %}
+                                <td>{{ p_form }} <button type="button" class="btn btn-danger btn-sm delete-row-btn">Hapus</button></td>
                                 {% endfor %}
                                 <td>
                                     <table class="table table-sm table-bordered mb-0 jawaban-table">
                                         <tr class="jawaban-row">
-                                            {% for field in jawaban_form %}
-                                            <td>{{ field }}</td>
+                                            {% for j_form in jawaban_form %}
+                                            <td>{{ j_form }}</td>
                                             {% endfor %}
                                             <td class="align-middle">
                                                 <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn">Hapus</button>
@@ -69,6 +73,7 @@
                                     <button type="button" class="btn btn-secondary btn-sm add-jawaban-btn mt-1">Tambah Jawaban</button>
                                 </td>
                             </tr>
+                            <!-- end new row pertanyaan -->
                         </tbody>
                     </table>
                     <button type="button" class="btn btn-primary add-row-btn">Tambah Baris</button>
@@ -102,16 +107,15 @@
         }
 
         function updateInputNames() {
-            $('.add-row-tbody tr.template-row').each(function (rowIndex) {
-                // Pertanyaan
-                $(this).find('input[name="teks_pertanyaan"]').attr('name', 'teks_pertanyaan');
+                // hanya untuk baris baru (create)
+                $('.add-row-tbody tr.new-template-row').each(function (rowIndex) {
+                    $(this).find('input[name="teks_pertanyaan"]').attr('name', 'teks_pertanyaan');
 
-                // Jawaban
-                $(this).find('.jawaban-row').each(function () {
-                    $(this).find('input.jawaban-teks').attr('name', `jawaban_${rowIndex}_teks[]`);
-                    $(this).find('input.jawaban-poin').attr('name', `jawaban_${rowIndex}_poin[]`);
+                    $(this).find('.jawaban-row').each(function () {
+                        $(this).find('input.jawaban-teks').attr('name', `jawaban_${rowIndex}_teks[]`);
+                        $(this).find('input.jawaban-poin').attr('name', `jawaban_${rowIndex}_poin[]`);
+                    });
                 });
-            });
         }
 
         $('.add-row-btn').click(function () {
@@ -166,7 +170,7 @@
         });
 
         // Awal
-        updateInputNames();
+        // updateInputNames();
     });
 </script>
 

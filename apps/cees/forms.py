@@ -206,12 +206,14 @@ class JawabanForm(forms.ModelForm):
             if field_name == 'teks_jawaban':
                 field.widget.attrs.update({
                     'placeholder': 'Enter the answer text here...',
-                    'class': 'form-control jawaban-teks'
+                    'class': 'form-control jawaban-teks',
+                    'autocomplete': 'off'
                 })
             elif field_name == 'poin':
                 field.widget.attrs.update({
                     'placeholder': 'Enter point value...',
-                    'class': 'form-control jawaban-poin'
+                    'class': 'form-control jawaban-poin',
+                    'autocomplete': 'off'
                 })
 
 

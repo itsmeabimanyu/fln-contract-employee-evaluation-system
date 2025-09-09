@@ -702,25 +702,90 @@ class UpdateKategori(TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Evaluation'
         context['card_title'] = 'Evaluation (Update)'
+        context['kategori_form'] = KategoriPenilaianForm(instance=self.kategori)
         context['pertanyaan_form'] = PertanyaanForm
         context['jawaban_form'] = JawabanForm
-        context['kategori_form'] = KategoriPenilaianForm(instance=self.kategori)
 
         # Ambil semua pertanyaan terkait kategori ini
         pertanyaan_terkait = Pertanyaan.objects.filter(kategori=self.kategori, deleted_at__isnull=True)
         for item in pertanyaan_terkait:
-            item.pertanyaan_form = PertanyaanForm(instance=item)
+            item.pertanyaan_form = PertanyaanForm(instance=item, prefix=f'pertanyaan-{item.id}')
             jawaban_list = Jawaban.objects.filter(pertanyaan=item, deleted_at__isnull=True)
+            '''item.jawaban_form = [
+                JawabanForm(
+                    initial={
+                        'teks_jawaban': jawaban.teks_jawaban,
+                        'poin': jawaban.poin
+                    },
+                    prefix=f'jawaban-{jawaban.id}'
+                )
+                for jawaban in jawaban_list
+            ]'''
             item.jawaban_form = [
-                JawabanForm(initial={
-                    'teks_jawaban': jawaban.teks_jawaban,
-                    'poin': jawaban.poin
-                })
+                JawabanForm(
+                    instance=jawaban,
+                    prefix=f'jawaban-{jawaban.id}'
+                )
                 for jawaban in jawaban_list
             ]
 
         context['items'] = pertanyaan_terkait
         return context
+    
+    def post(self, request, *args, **kwargs):
+        
+        action = request.POST.get('action')
+        if action == 'save':
+            kategori_form = KategoriPenilaianForm(request.POST, instance=self.kategori)
+            if kategori_form.is_valid():
+                kategori_form.save()
+            else:
+                return redirect(self.request.META.get('HTTP_REFERER'))
+            
+            # Update existing pertanyaan & jawaban
+            pertanyaans = Pertanyaan.objects.filter(kategori=self.kategori, deleted_at__isnull=True)
+            for pertanyaan in pertanyaans:
+                prefix = f'pertanyaan-{pertanyaan.id}'
+                p_form = PertanyaanForm(request.POST, instance=pertanyaan, prefix=prefix)
+
+                if p_form.is_valid():
+                    p_form.save()
+                else:
+                    return redirect(self.request.META.get('HTTP_REFERER'))
+
+                # Update jawaban untuk pertanyaan ini
+                jawaban_list = Jawaban.objects.filter(pertanyaan=pertanyaan, deleted_at__isnull=True)
+                for jawaban in jawaban_list:
+                    jawaban_prefix = f'jawaban-{jawaban.id}'
+                    j_form = JawabanForm(request.POST, instance=jawaban, prefix=jawaban_prefix)
+                    
+                    if j_form.is_valid():
+                        j_form.save()
+                        print(f"Jawaban {jawaban.id} saved successfully.")
+                    else:
+                        print(f"Jawaban {jawaban.id} form errors:", j_form.errors)
+
+            new_questions = request.POST.getlist('teks_pertanyaan')
+            for i, teks in enumerate(new_questions):
+                # Simpan pertanyaan
+                pertanyaan = Pertanyaan.objects.create(
+                    kategori=self.kategori,
+                    teks_pertanyaan=teks
+                )
+
+                # Ambil jawaban terkait berdasarkan index
+                jawaban_teks_list = request.POST.getlist(f'jawaban_{i}_teks[]')
+                jawaban_poin_list = request.POST.getlist(f'jawaban_{i}_poin[]')
+                for teks_jawaban, poin in zip(jawaban_teks_list, jawaban_poin_list):
+                    Jawaban.objects.create(
+                        pertanyaan=pertanyaan,
+                        teks_jawaban=teks_jawaban,
+                        poin=poin
+                    )
+            
+            return redirect(self.request.META.get('HTTP_REFERER'))
+
+
     
 
     

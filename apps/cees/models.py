@@ -115,6 +115,9 @@ class Jawaban(models.Model):
     def __str__(self):
         return self.teks_jawaban
     
+    class Meta:
+        ordering = ['poin']
+    
 """
 class HasilPenilaian(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
