@@ -93,6 +93,10 @@ class KategoriPenilaian(models.Model):
 
     def __str__(self):
         return self.nama_kategori
+    
+    def soft_delete(self):
+        self.deleted_at = timezone.now()  # Set waktu penghapusan
+        self.save()
 
 class Pertanyaan(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

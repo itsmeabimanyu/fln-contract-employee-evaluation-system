@@ -9,8 +9,14 @@
         {% csrf_token %}
             <div class="row">
                 <div class="col-lg-12">
-                    <h3 class="tile-title line-head">{{ card_title }}</h3>
+                    <div class="mailbox-controls">
+                    <h3 class="tile-title">{{ card_title }}</h3>
+                    <div class="btn-group">
+                       {{ btn_group|safe }}
+                    </div>
+                    </div>
                 </div>
+                {% if not btn_group %} 
                 <div class="col-lg-12 mb-3">
                     <div class="d-flex justify-content-end">
                         <div class="input-group" style="max-width: 300px;">
@@ -21,6 +27,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
                 <div class="table-responsive">
                     <table id="add-row" class="table table-sm table-hover table-bordered" >
                         <thead>
@@ -67,6 +74,7 @@
                             <!-- End ListView -->
 
                             <!-- Form -->
+                            {% if not btn_group %} <!-- cegah isi form via table "new form via btn_group" -->
                             <tr>
                                 <td></td>
                                 <td>{% comment %}{{ items|length|add:1 }}{% endcomment %}</td>
@@ -83,21 +91,26 @@
                                     </div>
                                 </td> 
                             </tr>
+                            {% endif %}
                             <!-- End Form -->
                         </tbody>
                     </table>
                 </div>
             </div>
+            
             <div class="tile-footer">
                 <div class="row">
                     <div class="col-md-8 col-md-offset-3">
+                        {% if not btn_group %}
                         <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
+                        {% endif %}
                     </div>
                     <div class="col-md-4 text-end">
                         {{ buttons_action|safe }}
                     </div>
                 </div>
             </div>
+
             {% block delete_checked %}
                 {% include 'includes/modal_delete_checked.html' %}
             {% endblock delete_checked %}

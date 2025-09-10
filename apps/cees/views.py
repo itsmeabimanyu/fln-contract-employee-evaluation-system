@@ -563,6 +563,18 @@ class ListKategori(TemplateView):
         context['title'] = 'Evaluation'
         context['card_title'] = 'Evaluation'
         context['formset'] = KategoriPenilaianForm
+        context['buttons_action'] = f"""
+            <button type="button" data-bs-toggle="modal" data-bs-target="#modal-first" class="btn btn-danger" id="delete-button" ><i class="bi bi-trash3-fill"></i>Delete Checked</button>
+            """
+        
+        context['act_modal'] = {
+            'Delete Checked': {
+                'modal_id': f'modal-first',
+                'icon' : '<i class="bi bi-trash-fill me-2"></i>',
+                'action_button': f'<button type="submit" name="action" value="delete_checked" class="btn btn-danger" id="delete-modal-button"><i class="bi bi-check-circle-fill me-2"></i>Delete</button>',
+            }
+        }
+
         items = KategoriPenilaian.objects.filter(deleted_at__isnull=True)
         for item in items:
             item.buttons_action = [
@@ -577,9 +589,48 @@ class ListKategori(TemplateView):
                 </div>
                 """
                 ]
+            
+            # Content modal
+            item.modals_form = {
+                f'Delete': {
+                    'modal_id': f'modal-second-{item.id}',
+                    'type': 'delete',
+                    'icon' : '<i class="bi bi-trash-fill me-2"></i>',
+                    'action_button': f'<button type="submit" name="action" value="delete" class="btn btn-danger"><i class="bi bi-check-circle-fill me-2"></i>Delete</button>',
+                }
+            }
+
         context['items'] = items
+        context['btn_group'] = f"""<button class='btn btn-info btn-sm' type='button' onclick='window.location.href=\"{reverse('create_kategori')}\"'><i class="bi bi-journal-plus"></i> New Form</button>"""
         return context
     
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        if action == 'delete':
+            item_id = self.request.POST.get('item_id')
+            data_kategori = get_object_or_404(KategoriPenilaian, pk=item_id)
+            data_kategori.soft_delete()
+
+            for pertanyaan in Pertanyaan.objects.filter(kategori=data_kategori, deleted_at__isnull=True):
+                pertanyaan.soft_delete()
+
+                for jawaban in Jawaban.objects.filter(pertanyaan=pertanyaan, deleted_at__isnull=True):
+                    jawaban.soft_delete()
+
+        elif action == 'delete_checked':
+            # Mendapatkan ID yang dipilih dari checkbox
+            selected_ids = self.request.POST.getlist('select')
+            if selected_ids:
+                items = KategoriPenilaian.objects.filter(id__in=selected_ids)
+                for item in items:
+                    item.soft_delete()
+                    for pertanyaan in Pertanyaan.objects.filter(kategori=item, deleted_at__isnull=True):
+                        pertanyaan.soft_delete()
+                        for jawaban in Jawaban.objects.filter(pertanyaan=pertanyaan, deleted_at__isnull=True):
+                            jawaban.soft_delete()
+
+        return redirect(self.request.META.get('HTTP_REFERER'))
+ 
 '''
 class UpdateKategori(TemplateView):
     template_name = 'pages/update_evaluation.html'
