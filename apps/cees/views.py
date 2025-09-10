@@ -737,25 +737,29 @@ class UpdateKategori(TemplateView):
         action = request.POST.get('action')
         if action == 'save':
 
-            # hapus jawaban
+            # 1. Hapus jawaban
             deleted_jawaban_ids = request.POST.getlist('deleted_jawaban_ids')
             if deleted_jawaban_ids:
                 for jawaban in Jawaban.objects.filter(id__in=deleted_jawaban_ids):
                     jawaban.soft_delete()
 
-            # hapus pertanyaan
+            # 2. Hapus pertanyaan dan jawaban terkait
             deleted_pertanyaan_ids = request.POST.getlist('deleted_pertanyaan_ids')
             if deleted_pertanyaan_ids:
                 for pertanyaan in Pertanyaan.objects.filter(id__in=deleted_pertanyaan_ids):
                     pertanyaan.soft_delete()
+                    # Soft delete semua jawaban yang terkait
+                    for jawaban in Jawaban.objects.filter(pertanyaan=pertanyaan):
+                        jawaban.soft_delete()
 
+            # 3. Simpan form kategori
             kategori_form = KategoriPenilaianForm(request.POST, instance=self.kategori)
             if kategori_form.is_valid():
                 kategori_form.save()
             else:
                 return redirect(self.request.META.get('HTTP_REFERER'))
             
-            # Update existing pertanyaan & jawaban
+            # 4. Update pertanyaan & jawaban existing
             pertanyaans = Pertanyaan.objects.filter(kategori=self.kategori, deleted_at__isnull=True)
             for pertanyaan in pertanyaans:
                 prefix = f'pertanyaan-{pertanyaan.id}'
@@ -766,7 +770,7 @@ class UpdateKategori(TemplateView):
                 else:
                     return redirect(self.request.META.get('HTTP_REFERER'))
 
-                # Update jawaban untuk pertanyaan ini
+                # Update jawaban existing
                 jawaban_list = Jawaban.objects.filter(pertanyaan=pertanyaan, deleted_at__isnull=True)
                 for jawaban in jawaban_list:
                     jawaban_prefix = f'jawaban-{jawaban.id}'
@@ -778,6 +782,28 @@ class UpdateKategori(TemplateView):
                     else:
                         print(f"Jawaban {jawaban.id} form errors:", j_form.errors)
 
+                # Tambah jawaban baru (yang tidak punya ID)
+                new_jawaban_teks = request.POST.getlist(f'jawaban-{pertanyaan.id}-teks[]')
+                new_jawaban_poin = request.POST.getlist(f'jawaban-{pertanyaan.id}-poin[]')
+                print(new_jawaban_poin)
+
+                for teks_jawaban, poin in zip(new_jawaban_teks, new_jawaban_poin):
+                    # Lewati jika teks kosong
+                    if not teks_jawaban.strip():
+                        continue
+
+                    try:
+                        poin_int = int(poin)
+                    except (ValueError, TypeError):
+                        poin_int = 0
+
+                    Jawaban.objects.create(
+                        pertanyaan=pertanyaan,
+                        teks_jawaban=teks_jawaban.strip(),
+                        poin=poin_int
+                    )
+
+            # 5. Tambah pertanyaan baru (dan jawaban baru)
             new_questions = request.POST.getlist('teks_pertanyaan')
             for i, teks in enumerate(new_questions):
                 # Simpan pertanyaan

@@ -5,7 +5,7 @@
 
 <div class="tile mb-4">
     <div class="page-header">
-        <form method="post" id="myForm">
+        <form method="post">
             {% csrf_token %}
             <div class="row">
                 <div class="col-lg-12">
@@ -29,15 +29,13 @@
 
                             <!-- ListView -->
                             {% for item in items %}
-                            <tr class="template-row">
+                            <tr class="template-row" data-pertanyaan-id="{{ item.id }}">
+                                <input type="hidden" name="pertanyaan-{{ item.id }}-id" value="{{ item.id }}">
                                 <td class="row-number">{{ forloop.counter }}</td>
                                 {% for p_form in item.pertanyaan_form %}
-                                    <td>
-                                    {{ p_form }}
-                                    {% if forloop.first %}
-                                        <input type="hidden" name="pertanyaan_ids" value="{{ item.id }}">
-                                        <button type="button" class="btn btn-danger btn-sm delete-row-btn">Hapus</button>
-                                    {% endif %}
+                                <td>
+                                {{ p_form }}
+                                <button type="button" class="btn btn-danger btn-sm delete-row-btn"><i class="bi bi-trash3-fill"></i></button>
                                 </td>
                                 {% endfor %}
                                 
@@ -50,12 +48,12 @@
                                             {% endfor %}
                                             <td class="align-middle">
                                                 <input type="hidden" name="jawaban_ids" value="{{ j_form.instance.id }}">
-                                                <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn">Hapus</button>
+                                                <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn"><i class="bi bi-trash3-fill"></i></button>
                                             </td>
                                         </tr>
                                         {% endfor %}
                                     </table>
-                                    <button type="button" class="btn btn-secondary btn-sm add-jawaban-btn mt-1">Tambah Jawaban</button>
+                                    <button type="button" class="btn btn-secondary btn-sm add-jawaban-btn mt-1"><i class="bi bi-plus-circle me-2"></i>Add Rows</button>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -65,7 +63,7 @@
                             <tr class="template-row new-template-row">
                                 <td class="row-number">{% if items %}{{ items|length|add:"1" }}{% else %}1{% endif %}</td>
                                 {% for p_form in pertanyaan_form %}
-                                <td>{{ p_form }} <button type="button" class="btn btn-danger btn-sm delete-row-btn">Hapus</button></td>
+                                <td>{{ p_form }} <button type="button" class="btn btn-danger btn-sm delete-row-btn"><i class="bi bi-trash3-fill"></i></button></td>
                                 {% endfor %}
                                 <td>
                                     <table class="table table-sm table-bordered mb-0 jawaban-table">
@@ -74,17 +72,17 @@
                                             <td>{{ j_form }}</td>
                                             {% endfor %}
                                             <td class="align-middle">
-                                                <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn">Hapus</button>
+                                                <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn"><i class="bi bi-trash3-fill"></i></button>
                                             </td>
                                         </tr>
                                     </table>
-                                    <button type="button" class="btn btn-secondary btn-sm add-jawaban-btn mt-1">Tambah Jawaban</button>
+                                    <button type="button" class="btn btn-secondary btn-sm add-jawaban-btn mt-1"><i class="bi bi-plus-circle me-2"></i>Add Answers</button>
                                 </td>
                             </tr>
                             <!-- end new row pertanyaan -->
                         </tbody>
                     </table>
-                    <button type="button" class="btn btn-primary add-row-btn">Tambah Baris</button>
+                    <button type="button" class="btn btn-secondary add-row-btn"><i class="bi bi-plus-circle me-2"></i>Add Rows</button>
                 </div>
             </div>
             <!-- End Create -->
@@ -108,109 +106,130 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
     $(document).ready(function () {
-        function updateRowNumbers() {
-            $('.add-row-tbody tr.template-row').each(function (index) {
-                $(this).find('.row-number').text(index + 1);
+    function updateRowNumbers() {
+        $('.add-row-tbody tr.template-row').each(function (index) {
+            $(this).find('.row-number').text(index + 1);
+        });
+    }
+
+    function updateInputNames() {
+        // Hanya untuk baris baru (create)
+        $('.add-row-tbody tr.new-template-row').each(function (rowIndex) {
+            // Input pertanyaan
+            $(this).find('input[name="teks_pertanyaan"]').attr('name', 'teks_pertanyaan');
+
+            // Jawaban inputs
+            $(this).find('.jawaban-row').each(function () {
+                $(this).find('input.jawaban-teks').attr('name', `jawaban_${rowIndex}_teks[]`);
+                $(this).find('input.jawaban-poin').attr('name', `jawaban_${rowIndex}_poin[]`);
             });
+        });
+    }
+
+    // Tambah baris pertanyaan
+    $('.add-row-btn').click(function () {
+        let $templateRow = $('.add-row-tbody tr.new-template-row').first();
+        if (!$templateRow.length) {
+            alert('Harap buat minimal 1 row baru secara manual dulu.');
+            return;
         }
 
-        function updateInputNames() {
-                // hanya untuk baris baru (create)
-                $('.add-row-tbody tr.new-template-row').each(function (rowIndex) {
-                    $(this).find('input[name="teks_pertanyaan"]').attr('name', 'teks_pertanyaan');
+        let $newRow = $templateRow.clone();
+        $newRow.find('input, select, textarea').val('');
 
-                    $(this).find('.jawaban-row').each(function () {
-                        $(this).find('input.jawaban-teks').attr('name', `jawaban_${rowIndex}_teks[]`);
-                        $(this).find('input.jawaban-poin').attr('name', `jawaban_${rowIndex}_poin[]`);
-                    });
-                });
+        // Update nama input dengan index baru
+        $('.add-row-tbody tr.new-template-row').each(function (index) {
+            $(this).find('input.teks_pertanyaan').attr('name', 'teks_pertanyaan');
+            $(this).find('.jawaban-row').each(function () {
+                $(this).find('input.jawaban-teks').attr('name', `jawaban_${index}_teks[]`);
+                $(this).find('input.jawaban-poin').attr('name', `jawaban_${index}_poin[]`);
+            });
+        });
+
+        $('.add-row-tbody').append($newRow);
+        updateRowNumbers();
+        updateInputNames();
+    });
+
+    // Hapus baris pertanyaan
+    $('.add-row-tbody').on('click', '.delete-row-btn', function () {
+        const $row = $(this).closest('tr.template-row');
+        const rowCount = $('.add-row-tbody tr.template-row').length;
+
+        if (rowCount <= 1) {
+            alert("Minimal satu baris harus ada.");
+            return;
         }
 
-        $('.add-row-btn').click(function () {
-            let $templateRow = $('.template-row').first();
-            let $newRow = $templateRow.clone();
+        const pertanyaanId = $row.find('input[name^="pertanyaan-"]').val();
+        if (pertanyaanId) {
+            $('<input>', {
+                type: 'hidden',
+                name: 'deleted_pertanyaan_ids',
+                value: pertanyaanId
+            }).appendTo('form');
+        }
 
-            // Reset semua input di row utama dan table nested (jawaban)
-            $newRow.find('input, select, textarea').each(function () {
-                $(this).val('');
-            });
+        $row.remove();
 
-            // Append ke tbody
-            $('.add-row-tbody').append($newRow);
-            updateRowNumbers();
-            updateInputNames();
-        });
+        updateRowNumbers();
+        updateInputNames();
+    });
 
-        // Hapus baris pertanyaan
-        $('.add-row-tbody').on('click', '.delete-row-btn', function () {
-            const $row = $(this).closest('tr.template-row');
-            const rowCount = $('.add-row-tbody tr.template-row').length;
+    // Tambah baris jawaban di row baru
+    $('.add-row-tbody').on('click', '.add-jawaban-btn', function () {
+        let $tbody = $(this).closest('td').find('tbody');
+        let $firstRow = $tbody.find('tr.jawaban-row').first();
+        let $newRow = $firstRow.clone(true);
 
-            if (rowCount <= 1) {
-                alert("Minimal satu baris harus ada.");
-                return;
-            }
+        $newRow.find('input').val('');
 
-            // Ambil ID pertanyaan dari hidden input
-            const pertanyaanId = $row.find('input[name="pertanyaan_ids"]').val();
-            if (pertanyaanId) {
-                // Tambahkan input hidden ke <form> agar ID ini bisa dihapus di backend
-                $('<input>', {
-                    type: 'hidden',
-                    name: 'deleted_pertanyaan_ids',
-                    value: pertanyaanId
-                }).appendTo('form');
-            }
+        // Ambil id pertanyaan dari data attribute tr.template-row
+        let $pertanyaanRow = $(this).closest('tr.template-row');
+        let pertanyaanId = $pertanyaanRow.data('pertanyaan-id'); // ambil dari data-pertanyaan-id
 
-            // Hapus baris dari DOM
-            $row.remove();
+        if (!pertanyaanId) {
+            // Kalau data-pertanyaan-id tidak ada, fallback ke row index
+            let rowIndex = $('.add-row-tbody tr.template-row').index($pertanyaanRow);
+            pertanyaanId = rowIndex; // atau cara lain jika mau fallback
+        }
 
-            // Update penomoran dan input name
-            updateRowNumbers();
-            updateInputNames();
-        });
+        // Update nama input jawaban sesuai pertanyaan id
+        $newRow.find('input.jawaban-teks').attr('name', `jawaban-${pertanyaanId}-teks[]`);
+        $newRow.find('input.jawaban-poin').attr('name', `jawaban-${pertanyaanId}-poin[]`);
 
+        $tbody.append($newRow);
+        updateInputNames();
+    });
 
-        // Tambah baris jawaban
-        $('.add-row-tbody').on('click', '.add-jawaban-btn', function () {
-            let $tbody = $(this).closest('td').find('.jawaban-table tbody');
-            let $firstRow = $tbody.find('tr.jawaban-row').first();
-            let $newRow = $firstRow.clone(true);
+    // Hapus baris jawaban
+    $('.add-row-tbody').on('click', '.delete-jawaban-btn', function () {
+        const $row = $(this).closest('tr.jawaban-row');
+        const $tbody = $row.closest('tbody');
+        const rowCount = $tbody.find('tr.jawaban-row').length;
 
-            // Reset input dalam baris jawaban
-            $newRow.find('input, select, textarea').val('');
-            $tbody.append($newRow);
-            updateInputNames();
-        });
+        if (rowCount <= 1) {
+            alert('Minimal satu jawaban harus ada.');
+            return;
+        }
 
-        // Hapus baris jawaban
-        $('.add-row-tbody').on('click', '.delete-jawaban-btn', function () {
-            const $row = $(this).closest('tr.jawaban-row');
-            const $tbody = $row.closest('tbody');
-            const rowCount = $tbody.find('tr.jawaban-row').length;
+        const jawabanId = $row.find('input[name="jawaban_ids"]').val();
+        if (jawabanId) {
+            $('<input>', {
+                type: 'hidden',
+                name: 'deleted_jawaban_ids',
+                value: jawabanId
+            }).appendTo('form');
+        }
 
-            if (rowCount <= 1) {
-                alert('Minimal satu jawaban harus ada.');
-                return;
-            }
+        $row.remove();
+        updateInputNames();
+    });
 
-            // Ambil ID jawaban kalau ada
-            const jawabanId = $row.find('input[name="jawaban_ids"]').val();
-            if (jawabanId) {
-                // Tambahkan ke form sebagai data untuk dihapus
-                $('<input>', {
-                    type: 'hidden',
-                    name: 'deleted_jawaban_ids',
-                    value: jawabanId
-                }).appendTo('form');
-            }
-
-            $row.remove();
-            updateInputNames();
-        });
-
-        // Awal
-        // updateInputNames();
+    // Initial update input names
+    updateInputNames();
+    updateRowNumbers();
+    
     });
 </script>
 
