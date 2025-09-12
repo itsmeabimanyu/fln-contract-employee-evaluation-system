@@ -16,7 +16,7 @@
                     </div>
                     </div>
                 </div>
-                {% if not btn_group %} 
+                {% if not dis_add_row %} 
                 <div class="col-lg-12 mb-3">
                     <div class="d-flex justify-content-end">
                         <div class="input-group" style="max-width: 300px;">
@@ -77,7 +77,7 @@
                             {% if not btn_group %} <!-- cegah isi form via table "new form via btn_group" -->
                             <tr>
                                 <td></td>
-                                <td>{% comment %}{{ items|length|add:1 }}{% endcomment %}</td>
+                                <td></td>
                                 {% for field in formset %}
                                     <td>{{ field }}</td>
                                 {% endfor %}
@@ -121,5 +121,93 @@
 {% block modal %}
     {% include 'includes/modal.html' %}
 {% endblock modal %}
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Checkbox Select All dan toggle tombol hapus
+        const $checkAll = $('#check-all');
+        const $checkboxes = $('.select');
+        const $deleteButton = $('#delete-button');
+        const $deleteModalButton = $('#delete-modal-button');
+        const $form = $('#myForm');
+
+        function disableRequiredFields() {
+            $form.find('[required]').removeAttr('required');
+        }
+        $deleteModalButton.on('click', disableRequiredFields);
+
+        function toggleButtonVisibility() {
+            const anyChecked = $checkboxes.is(':checked') || $checkAll.is(':checked');
+            if (!anyChecked) {
+                $deleteButton.removeClass('btn-danger').addClass('btn-secondary disabled');
+            } else {
+                $deleteButton.removeClass('btn-secondary disabled').addClass('btn-danger');
+            }
+        }
+
+        $checkAll.on('change', function() {
+            $checkboxes.prop('checked', $(this).prop('checked'));
+            toggleButtonVisibility();
+        });
+
+        $checkboxes.on('change', function() {
+            if (!$(this).prop('checked')) {
+                $checkAll.prop('checked', false);
+            } else {
+                const allChecked = $checkboxes.length === $checkboxes.filter(':checked').length;
+                $checkAll.prop('checked', allChecked);
+            }
+            toggleButtonVisibility();
+        });
+
+        toggleButtonVisibility();
+
+        // Fungsi Add Rows
+        let rowIndex = $('#add-row tbody tr').length; // Hitung jumlah baris awal
+
+        $('#addRows').on('click', function () {
+            let rowCount = parseInt($('#rowCount').val()) || 1;
+
+            if (isNaN(rowCount) || rowCount <= 0) {
+                alert('Invalid input! Please enter a number greater than 0.');
+                return;
+            }
+
+            let $templateRow = $('#add-row tbody tr:first');
+
+            for (let i = 0; i < rowCount; i++) {
+                let $newRow = $templateRow.clone();
+
+                // Kosongkan input
+                $newRow.find('input, select, textarea').each(function () {
+                    if ($(this).is(':checkbox') || $(this).is(':radio')) {
+                        // Uncheck checkbox/radio
+                        $(this).prop('checked', false);
+                    } else {
+                        $(this).val('');
+                    }
+                });
+
+                // Ubah ID dan for agar unik
+                $newRow.find('[id]').each(function () {
+                    let newId = $(this).attr('id') + '-' + rowIndex;
+                    $(this).attr('id', newId);
+                });
+
+                $newRow.find('label[for]').each(function () {
+                    let newFor = $(this).attr('for') + '-' + rowIndex;
+                    $(this).attr('for', newFor);
+                });
+
+                $('#add-row tbody').prepend($newRow);
+                rowIndex++;
+            }
+
+            $('#rowCount').val('');
+            initDatepickers();
+        });
+    });
+</script>
 
 {% endblock content %}

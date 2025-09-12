@@ -92,7 +92,7 @@ class KategoriPenilaian(models.Model):
         ordering = ['nama_kategori']
 
     def __str__(self):
-        return self.nama_kategori
+        return f"{self.nama_kategori} ({self.bobot_nilai})"
     
     def soft_delete(self):
         self.deleted_at = timezone.now()  # Set waktu penghapusan
@@ -141,3 +141,18 @@ class HasilPenilaian(models.Model):
         return f"{self.karyawan.nama} - {self.pertanyaan.nama_pertanyaan}"
 """
 
+class KategoriPerJabatan(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    jabatan = models.ForeignKey(Jabatan, on_delete=models.CASCADE)
+    kategori = models.ManyToManyField(KategoriPenilaian, related_name='kategori')
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def soft_delete(self):
+        self.deleted_at = timezone.now()  # Set waktu penghapusan
+        self.save()
+
+    def __str__(self):
+        if self.pk:  # pastikan objek sudah disimpan
+            kategori_names = ", ".join([f"{k.nama_kategori} ({k.bobot_nilai})" for k in self.kategori.all()])
+            return f"{self.jabatan} - [{kategori_names}]"

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban
+from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban, KategoriPerJabatan
 from django.utils import timezone
 
 class DepartemenForm(forms.ModelForm):
@@ -216,4 +216,28 @@ class JawabanForm(forms.ModelForm):
                     'autocomplete': 'off'
                 })
 
+class KategoriPerJabatanForm(forms.ModelForm):
+    class Meta:
+        model = KategoriPerJabatan
+        fields = ['jabatan', 'kategori']
+        widgets = {
+            'kategori': forms.CheckboxSelectMultiple(),  # atau forms.SelectMultiple()
+        }
 
+        labels = {
+            'jabatan': 'Position',
+            'kategori': 'Category'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Pastikan instance sudah ada dan punya id
+        instance_id = getattr(self.instance, 'id', None)
+
+        for field_name, field in self.fields.items():
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = 'form-select'
+
+            # Ganti id HTML berdasarkan instance
+            if instance_id:
+                field.widget.attrs['id'] = f'{field_name}_{instance_id}'

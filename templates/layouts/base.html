@@ -113,6 +113,7 @@
     <!-- Datatables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/v/bs5/dt-1.13.4/datatables.min.css">
     <script src="{% static 'js/plugins/datatables/datatables.min.js' %}"></script>
+
     <script>
         $(document).ready(function() {
             // Add Row
@@ -162,133 +163,16 @@
     <script>
         // Hapus baris saat tombol "Delete" diklik
         $('#add-row tbody').on('click', '.deleteRow', function() {
-            $(this).closest('tr').remove();
-            // Perbarui nomor baris setelah menghapus
-            // $('#add-row tbody tr').each(function(index) {
-            //     $(this).find('td:nth-child(2)').text(index + 1);  // Update the second column (index 1) with the new row number
-            // });
-        });
-    </script>
+            // Hitung berapa baris dengan class "new" tersisa
+            var newRowsCount = $('#add-row tbody tr.new').length;
 
-    <script>
-        // Tambahkan baris saat tombol "Add Rows" diklik
-        $('#addRows').on('click', function () {
-            // Ambil jumlah baris yang diinput
-            var rowCount = $('#rowCount').val();
-
-            // Jika input kosong, tambahkan 1 baris
-            if (rowCount === "") {
-                rowCount = 1;
-            }
-            // Jika input bukan angka atau 0, jangan tambahkan baris
-            else if (isNaN(rowCount) || rowCount <= 0) {
-                alert('Input tidak valid! Masukkan angka lebih dari 0.');
-                return;
-            }
-
-            // Loop untuk menambahkan baris sesuai jumlah yang diinput
-            for (var i = 0; i < rowCount; i++) {
-                // Buat baris baru
-                var newRow = `
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        {% for field in formset %}
-                            <td>{{ field }}</td>
-                        {% endfor %}
-                        <td class="align-middle">
-                            <div class="bs-component">
-                                <div class="btn-group" role="group" aria-label="Basic example">
-                                    <div class="btn-group" role="group" aria-label="Basic example">
-                                        <button type="button" class="btn btn-sm btn-danger deleteRow" title="Delete"><i class="bi bi-trash-fill"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </td> 
-                    </tr>
-                `;
-                // Tambahkan baris ke "PALING ATAS" tabel
-                $('#add-row tbody').prepend(newRow);
-            }
-
-            // Reset input jumlah baris
-            $('#rowCount').val('');
-
-            // Inisialisasi datepicker pada input baru
-            initDatepickers();
-        });
-    </script>
-
-    <!-- Checkbox -->
-    <script>
-        // Mendapatkan elemen checkbox "select semua" dan semua checkbox individual
-        const checkAll = document.getElementById('check-all');
-        const checkboxes = document.querySelectorAll('.select');
-        const deleteButton = document.getElementById('delete-button');
-        const deleteModalButton = document.getElementById('delete-modal-button');
-
-        // const form = document.querySelector('form');
-        const form = document.querySelector('#myForm');
-
-        // Fungsi untuk menghapus atribut required
-        function disableRequiredFields() {
-            form.querySelectorAll('[required]').forEach(function (input) {
-                input.removeAttribute('required');
-            });
-        }
-
-        // Hanya tombol tertentu yang disable required
-        deleteModalButton?.addEventListener('click', disableRequiredFields);
-        
-        // Fungsi untuk memeriksa apakah ada checkbox yang dicentang
-        function toggleButtonVisibility() {
-            // Cek apakah ada checkbox yang dicentang, jika iya tampilkan tombol
-            const anyChecked = Array.from(checkboxes).some(checkbox => checkbox.checked) || checkAll.checked;
-            if (!anyChecked) {
-                deleteButton.classList.remove('btn-danger');
-                deleteButton.classList.add('btn-secondary', 'disabled');
+            if (newRowsCount > 1) {
+                // Kalau lebih dari 1, hapus baris terdekat dengan tombol yang diklik
+                $(this).closest('tr.new').remove();
             } else {
-                deleteButton.classList.remove('btn-secondary', 'disabled');
-                deleteButton.classList.add('btn-danger');
+                alert("Cannot delete. At least one row must remain.");
             }
-
-            /*
-            if (!anyChecked) {
-                deleteButton.classList.add('d-none');  // Sembunyikan tombol
-            } else {
-                deleteButton.classList.remove('d-none');  // Tampilkan tombol
-            }*/
-        }
-
-        // Event listener untuk checkbox "select semua"
-        checkAll.addEventListener('change', function() {
-            // Setiap checkbox akan disesuaikan dengan status checkbox "select semua"
-            checkboxes.forEach(function(checkbox) {
-                checkbox.checked = checkAll.checked;
-            });
-            // Cek dan perbarui status tombol
-            toggleButtonVisibility();
         });
-
-        // Event listener untuk setiap checkbox individual
-        checkboxes.forEach(function(checkbox) {
-            checkbox.addEventListener('change', function() {
-                // Jika ada checkbox yang tidak dicentang, hilangkan centang pada "select semua"
-                if (!this.checked) {
-                    checkAll.checked = false;
-                } else {
-                    // Cek apakah semua checkbox dicentang, jika iya centang "select semua"
-                    checkAll.checked = Array.from(checkboxes).every(function(checkbox) {
-                        return checkbox.checked;
-                    });
-                }
-                // Cek dan perbarui status tombol
-                toggleButtonVisibility();
-            });
-        });
-
-        // Panggil fungsi pertama kali untuk memastikan tombol tersembunyi saat awal
-        toggleButtonVisibility();
     </script>
 
     <!-- Datepicker flatpickr -->
@@ -299,27 +183,27 @@
     <script>
         // Fungsi untuk inisialisasi datepicker
         function initDatepickers() {
-                // Inisialisasi untuk .bdatepicker
-                document.querySelectorAll('.bdatepicker').forEach(function(el) {
-                    flatpickr(el, {
-                    dateFormat: 'd-m-Y', // Format tanggal
-                    //minDate: "1900-01-01", // Batas minimum tanggal
-                    //maxDate: "today", // Maksimal tanggal adalah hari ini
-                    // yearRange: "1900:-17", // Rentang tahun
-                    maxDate: new Date(new Date().getFullYear() - 17, 11, 31),  // umur minimal 17 tahun
-                    disableMobile: true, // Menonaktifkan tampilan mobile (opsional)
-                    });
+            // Inisialisasi untuk .bdatepicker
+            document.querySelectorAll('.bdatepicker').forEach(function(el) {
+                flatpickr(el, {
+                dateFormat: 'd-m-Y', // Format tanggal
+                //minDate: "1900-01-01", // Batas minimum tanggal
+                //maxDate: "today", // Maksimal tanggal adalah hari ini
+                // yearRange: "1900:-17", // Rentang tahun
+                maxDate: new Date(new Date().getFullYear() - 17, 11, 31),  // umur minimal 17 tahun
+                disableMobile: true, // Menonaktifkan tampilan mobile (opsional)
                 });
+            });
 
-                // Inisialisasi untuk .datepicker
-                document.querySelectorAll('.datepicker').forEach(function(el) {
-                    flatpickr(el, {
-                    dateFormat: 'd-m-Y', // Format tanggal
-                    //minDate: "today", // Tanggal minimal adalah hari ini
-                    yearRange: "c-10:c+1", // Rentang tahun relatif
-                    disableMobile: true, // Menonaktifkan tampilan mobile (opsional)
-                    });
+            // Inisialisasi untuk .datepicker
+            document.querySelectorAll('.datepicker').forEach(function(el) {
+                flatpickr(el, {
+                dateFormat: 'd-m-Y', // Format tanggal
+                //minDate: "today", // Tanggal minimal adalah hari ini
+                yearRange: "c-10:c+1", // Rentang tahun relatif
+                disableMobile: true, // Menonaktifkan tampilan mobile (opsional)
                 });
+            });
         }
     </script>
 

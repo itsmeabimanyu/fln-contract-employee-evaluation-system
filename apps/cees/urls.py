@@ -13,6 +13,9 @@ urlpatterns = [
     path('master/form/category/', views.CreateKategori.as_view(), name='create_kategori'),
     path('master/form/evaluation-category/', views.ListKategori.as_view(), name='list_kategori'),
     path('master/form/evaluation-category/update/<uuid:pk>', views.UpdateKategori.as_view(), name='update_kategori'),
+
+    path('master/form/assign-category/', views.ListKategoriPerJabatan.as_view(), name='list_mapping'),
+    
 ]
 
 # Tambahkan register/ hanya jika dalam mode DEBUG (development)

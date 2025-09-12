@@ -3,11 +3,12 @@ from django.views.generic import (
     CreateView, TemplateView, View, ListView,
     DetailView, UpdateView
 )
-from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban
-from .forms import DepartemenForm, JabatanForm, DataKaryawanForm, UpdateDataKaryawanForm, MasaKontrakForm, KategoriPenilaianForm, PertanyaanForm, JawabanForm
+from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban, KategoriPerJabatan
+from .forms import DepartemenForm, JabatanForm, DataKaryawanForm, UpdateDataKaryawanForm, MasaKontrakForm, KategoriPenilaianForm, PertanyaanForm, JawabanForm, KategoriPerJabatanForm
 from django.shortcuts import get_object_or_404, redirect, render
 from datetime import datetime
 from django.urls import reverse, reverse_lazy
+from django.contrib import messages
 
 # Create your views here.
 class ListDepartemen(TemplateView):
@@ -91,7 +92,7 @@ class ListDepartemen(TemplateView):
         elif action == 'delete_checked':
             # Mendapatkan ID yang dipilih dari checkbox
             selected_ids = self.request.POST.getlist('select')
-            print(selected_ids)
+            
             if selected_ids:
                 items = Departemen.objects.filter(id__in=selected_ids)
                 for item in items:
@@ -192,7 +193,7 @@ class ListJabatan(TemplateView):
         elif action == 'delete_checked':
             # Mendapatkan ID yang dipilih dari checkbox
             selected_ids = self.request.POST.getlist('select')
-            print(selected_ids)
+            
             if selected_ids:
                 items = Jabatan.objects.filter(id__in=selected_ids)
                 for item in items:
@@ -228,7 +229,7 @@ class ListKaryawan(TemplateView):
             'tgl_mulai_kontrak': 'Start Date',
             'tgl_akhir_kontrak': 'End Date',
             'status_karyawan': 'Status',
-            }
+        }
           
         context['buttons_action'] = f"""
             <button type="button" data-bs-toggle="modal" data-bs-target="#modal-first" class="btn btn-danger" id="delete-button" ><i class="bi bi-trash3-fill"></i>Delete Checked</button>
@@ -369,7 +370,7 @@ class ListKaryawan(TemplateView):
         elif action == 'delete_checked':
             # Mendapatkan ID yang dipilih dari checkbox
             selected_ids = self.request.POST.getlist('select')
-            print(selected_ids)
+            
             if selected_ids:
                 items = DataKaryawan.objects.filter(id__in=selected_ids)
                 for item in items:
@@ -499,7 +500,7 @@ class UpdateKaryawan(TemplateView):
         elif action == 'delete_checked':
             # Mendapatkan ID yang dipilih dari checkbox
             selected_ids = self.request.POST.getlist('select')
-            print(selected_ids)
+            
             if selected_ids:
                 items = MasaKontrak.objects.filter(id__in=selected_ids)
                 for item in items:
@@ -566,6 +567,7 @@ class ListKategori(TemplateView):
         context['buttons_action'] = f"""
             <button type="button" data-bs-toggle="modal" data-bs-target="#modal-first" class="btn btn-danger" id="delete-button" ><i class="bi bi-trash3-fill"></i>Delete Checked</button>
             """
+        context['dis_add_row'] = True
         
         context['act_modal'] = {
             'Delete Checked': {
@@ -631,72 +633,6 @@ class ListKategori(TemplateView):
 
         return redirect(self.request.META.get('HTTP_REFERER'))
  
-'''
-class UpdateKategori(TemplateView):
-    template_name = 'pages/update_evaluation.html'
-
-    def dispatch(self, request, *args, **kwargs):
-        # Ambil pk sekali dan simpan sebagai atribut instance
-        pk = kwargs.get('pk')
-        self.kategori = KategoriPenilaian.objects.get(id=pk, deleted_at__isnull=True)
-        return super().dispatch(request, *args, **kwargs)
-    
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Evaluation'
-        context['card_title'] = 'Evaluation'
-        context['kategori_form'] = KategoriPenilaianForm(instance=self.kategori)
-        context['pertanyaan_form'] = PertanyaanForm
-        context['jawaban_form'] = JawabanForm
-
-        # Ambil semua pertanyaan terkait kategori ini
-        pertanyaan_terkait = Pertanyaan.objects.filter(
-            kategori=self.kategori, deleted_at__isnull=True
-        )
-
-        # Cara 1
-        """
-        pertanyaan_forms = []
-        for item in pertanyaan_terkait:
-            pertanyaan_forms.append({
-                'form': PertanyaanForm(instance=item),
-                'jawaban_list': Jawaban.objects.filter(pertanyaan=item, deleted_at__isnull=True)
-            })
-
-        context['pertanyaan_forms'] = pertanyaan_forms
-        """
-
-        Cara 2
-        context['pertanyaan_forms'] = [
-            {
-                'form_pertanyaan': PertanyaanForm(instance=pertanyaan),
-                # 'jawaban_list': Jawaban.objects.filter(pertanyaan=pertanyaan, deleted_at__isnull=True)
-                'jawaban_forms': [
-                    JawabanForm(instance=jawaban)
-                    for jawaban in Jawaban.objects.filter(pertanyaan=pertanyaan, deleted_at__isnull=True)
-                ],
-
-                'buttons_action' : [
-                f"""
-                <div class="bs-component">
-                    <div class="btn-group" role="group" aria-label="Basic example">
-                        <div class="btn-group" role="group" aria-label="Basic example">
-                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle='modal' data-bs-target='#modal-second-{pertanyaan.id}' title="Delete"><i class="bi bi-trash3-fill"></i></button>
-                        </div>
-                    </div>
-                </div>
-                """
-                ]
-            }
-            for pertanyaan in pertanyaan_terkait
-        ]
-
-        # Pertanyaan dan jawaban sebagai initial (bukan lewat form Django langsung)
-        # context['pertanyaan_terkait'] = Pertanyaan.objects.filter(kategori=self.kategori, deleted_at__isnull=True).prefetch_related('jawaban_set')
-        return context
-'''
-
 class CreateKategori(TemplateView):
     template_name = 'pages/create_evaluation.html'
 
@@ -875,7 +811,115 @@ class UpdateKategori(TemplateView):
             
             return redirect(self.request.META.get('HTTP_REFERER'))
 
+# Note:* disini add row dimatikan karena belum fix untuk input beberapa row  (next pakai formset)
+# Note: Hapus permanen
+class ListKategoriPerJabatan(TemplateView):
+    template_name = 'pages/create.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Evaluation'
+        context['card_title'] = 'Evaluation (Assign Category)'
+        context['formset'] = KategoriPerJabatanForm
+        context['buttons_action'] = f"""
+            <button type="button" data-bs-toggle="modal" data-bs-target="#modal-first" class="btn btn-danger" id="delete-button" ><i class="bi bi-trash3-fill"></i>Delete Checked</button>
+            """
+        
+        context['act_modal'] = {
+            'Delete Checked': {
+                'modal_id': f'modal-first',
+                'icon' : '<i class="bi bi-trash-fill me-2"></i>',
+                'action_button': f'<button type="submit" name="action" value="delete_checked" class="btn btn-danger" id="delete-modal-button"><i class="bi bi-check-circle-fill me-2"></i>Delete</button>',
+            }
+        }
+        
+        context['dis_add_row'] = True
+        context['fields'] = {
+            'jabatan': 'Position',
+            'kategori_list': 'Category'
+        }
+        
+        items = KategoriPerJabatan.objects.filter(deleted_at__isnull=True)
+
+        # Tambah tombol ke tiap baris data
+        for item in items:
+            item.buttons_action = [
+                f"""
+                <div class="bs-component">
+                    <div class="btn-group" role="group" aria-label="Basic example">
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <button class="btn btn-sm btn-warning" type="button" data-bs-toggle='modal' data-bs-target='#modal-first-{item.id}' title="Edit"><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle='modal' data-bs-target='#modal-second-{item.id}' title="Delete"><i class="bi bi-trash3-fill"></i></button>
+                        </div>
+                    </div>
+                </div>
+                """
+                ]
+            
+            item.kategori_list = ", ".join([f"{k.nama_kategori} ({k.bobot_nilai})" for k in item.kategori.all()])
+
+            item.form_update = KategoriPerJabatanForm(instance=item)
+            
+            # Content modal
+            item.modals_form = {
+                f'Update': {
+                    'modal_id': f'modal-first-{item.id}',
+                    'action_button': f'<button type="submit" name="action" value="edit" class="btn btn-warning"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>',
+                    'icon': f'<i class="bi bi-pencil-square me-2"></i>',
+                },
+                f'Delete': {
+                    'modal_id': f'modal-second-{item.id}',
+                    'type': 'delete',
+                    'icon' : '<i class="bi bi-trash-fill me-2"></i>',
+                    'action_button': f'<button type="submit" name="action" value="delete" class="btn btn-danger"><i class="bi bi-check-circle-fill me-2"></i>Delete</button>',
+                }
+            }
+
+        context['items'] = items
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+
+        if action == 'save':
+            form = KategoriPerJabatanForm(request.POST)
+            if form.is_valid():
+                jabatan = form.cleaned_data['jabatan']
+                # Cek apakah jabatan sudah ada
+                if KategoriPerJabatan.objects.filter(jabatan=jabatan, deleted_at__isnull=True).exists():
+                    messages.error(request, f'Jabatan "{jabatan}" sudah memiliki entri.')
+                else:
+                    form.save()
+                    messages.success(request, 'Data berhasil disimpan.')
+
+        elif action == 'edit':
+            item_id = request.POST.get('item_id')
+            kategori_jabatan = get_object_or_404(KategoriPerJabatan, pk=item_id)
+            form = KategoriPerJabatanForm(request.POST, instance=kategori_jabatan)
+            if form.is_valid():
+                jabatan = form.cleaned_data['jabatan']
+                # Cek apakah jabatan sudah ada di entri lain
+                if KategoriPerJabatan.objects.filter(jabatan=jabatan, deleted_at__isnull=True).exclude(pk=kategori_jabatan.pk).exists():
+                    messages.error(request, f'Jabatan "{jabatan}" sudah memiliki entri.')
+                else:
+                    form.save()
+                    messages.success(request, 'Data berhasil diperbarui.')
+
+        elif action == 'delete':
+            item_id = self.request.POST.get('item_id')
+            kategori_jabatan = get_object_or_404(KategoriPerJabatan, pk=item_id)
+            kategori_jabatan.soft_delete()
+
+        elif action == 'delete_checked':
+            # Mendapatkan ID yang dipilih dari checkbox
+            selected_ids = self.request.POST.getlist('select')
+            
+            if selected_ids:
+                items = KategoriPerJabatan.objects.filter(id__in=selected_ids)
+                for item in items:
+                    item.soft_delete()
+
+        return redirect(self.request.META.get('HTTP_REFERER'))
     
 
     

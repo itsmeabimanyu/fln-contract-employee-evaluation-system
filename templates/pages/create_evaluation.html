@@ -157,7 +157,7 @@
         const rowCount = $('.add-row-tbody tr.template-row').length;
 
         if (rowCount <= 1) {
-            alert("Minimal satu baris harus ada.");
+            alert("Cannot delete. At least one row must remain.");
             return;
         }
 
@@ -209,7 +209,7 @@
         const rowCount = $tbody.find('tr.jawaban-row').length;
 
         if (rowCount <= 1) {
-            alert('Minimal satu jawaban harus ada.');
+            alert('There must be at least one answer.');
             return;
         }
 
@@ -232,106 +232,5 @@
     
     });
 </script>
-
-<script>
-    /*
-    // Tambah baris pertanyaan
-    document.addEventListener('click', function(event) {
-        if(event.target.classList.contains('add-row-btn')) {
-            const tbody = document.querySelector('.add-row-tbody');
-            const templateRow = tbody.querySelector('.template-row');
-
-            // Clone baris template
-            const newRow = templateRow.cloneNode(true);
-
-            // Reset input
-            const inputs = newRow.querySelectorAll('input, select, textarea');
-            inputs.forEach(input => {
-                if(input.type === 'checkbox' || input.type === 'radio') {
-                    input.checked = false;
-                } else {
-                    input.value = '';
-                }
-            });
-
-            newRow.classList.remove('template-row');
-
-            // Update nomor baris baru
-            const rows = tbody.querySelectorAll(':scope > tr:not(.template-row)');
-            let lastNumber = 1;
-            if(rows.length > 0) {
-                const lastRow = rows[rows.length - 1];
-                const nomorCell = lastRow.querySelector('.row-number');
-                lastNumber = nomorCell ? parseInt(nomorCell.textContent) : 0;
-            }
-
-            const nomorCellNewRow = newRow.querySelector('.row-number');
-            if(nomorCellNewRow) {
-                nomorCellNewRow.textContent = lastNumber + 1;
-            }
-
-            tbody.appendChild(newRow);
-        }
-    });
-
-    // Tambah baris jawaban (nested)
-    document.addEventListener('click', function(event) {
-        if(event.target.classList.contains('add-nested-row-btn')) {
-            const mainRow = event.target.closest('tr');
-            if(!mainRow) return;
-
-            const jawabanTable = mainRow.querySelector('.jawaban-table tbody');
-            if(!jawabanTable) return;
-
-            const lastNestedRow = jawabanTable.querySelector('tr:last-child');
-            if(!lastNestedRow) return;
-
-            const newNestedRow = lastNestedRow.cloneNode(true);
-
-            // Reset input di nested row baru
-            const inputs = newNestedRow.querySelectorAll('input, select, textarea');
-            inputs.forEach(input => {
-                if(input.type === 'checkbox' || input.type === 'radio') {
-                    input.checked = false;
-                } else {
-                    input.value = '';
-                }
-            });
-            jawabanTable.appendChild(newNestedRow);
-        }
-    });
-
-    // Hapus baris pertanyaan dengan validasi minimal 1 baris
-    document.addEventListener('click', function(event) {
-        if (event.target.classList.contains('delete-row-btn')) {
-            const tbody = document.querySelector('.add-row-tbody');
-
-            // Ambil hanya baris utama (langsung di bawah tbody)
-            const mainRows = tbody.querySelectorAll(':scope > tr');
-
-            if (mainRows.length <= 1) {
-                alert('Tidak bisa menghapus, minimal harus ada 1 baris pertanyaan.');
-                return;
-            }
-
-            const row = event.target.closest('tr');
-            if (row) {
-                row.remove();
-            }
-
-            // Update nomor baris
-            const updatedRows = tbody.querySelectorAll(':scope > tr');
-            updatedRows.forEach((r, index) => {
-                const nomorCell = r.querySelector('.row-number');
-                if (nomorCell) {
-                    nomorCell.textContent = index + 1;
-                }
-            });
-        }
-    });
-    */
-
-</script>
-
 
 {% endblock content %}
