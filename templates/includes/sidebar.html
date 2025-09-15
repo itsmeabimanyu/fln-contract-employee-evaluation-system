@@ -7,6 +7,7 @@
     </div>
     <ul class="app-menu">
         <li><a class="app-menu__item active" href="dashboard.html"><i class="app-menu__icon bi bi-speedometer"></i><span class="app-menu__label">Dashboard</span></a></li>
+        <li><a class="app-menu__item active" href="{% url 'list_penilaian_karyawan' %}"><i class="app-menu__icon bi bi-clipboard-check-fill"></i><span class="app-menu__label">Employee Evaluation</span></a></li>
         <li class="treeview"><a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon bi bi-database-fill"></i><span class="app-menu__label">Master Evaluation</span><i class="treeview-indicator bi bi-chevron-right"></i></a>
             <ul class="treeview-menu">
                 <li><a class="treeview-item" href="{% url 'list_kategori' %}"><i class="icon bi bi-circle-fill"></i>Evaluation Form</a></li>

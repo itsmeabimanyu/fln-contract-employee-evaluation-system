@@ -5,232 +5,66 @@
 
 <div class="tile mb-4">
     <div class="page-header">
-        <form method="post">
+        <form method="post" id="myForm">
             {% csrf_token %}
             <div class="row">
                 <div class="col-lg-12">
                     <h3 class="tile-title line-head">{{ card_title }}</h3>
                 </div>
-                <div class="col-lg-12 p-3">{{ kategori_form.as_p }}</div>
             </div>
-
-            <!-- Create -->
             <div class="row">
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover table-bordered add-row">
+                    <table class="table table-sm table-bordered">
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>Pertanyaan</th>
-                                <th>Jawaban</th>
+                                {% for key, field in fields.items %}
+                                    <th>{{ field }}</th>
+                                {% endfor %}
                             </tr>
                         </thead>
-                        <tbody class="add-row-tbody">
-
-                            <!-- ListView -->
-                            {% for item in items %}
-                            <tr class="template-row" data-pertanyaan-id="{{ item.id }}">
-                                <input type="hidden" name="pertanyaan-{{ item.id }}-id" value="{{ item.id }}">
-                                <td class="row-number">{{ forloop.counter }}</td>
-                                {% for p_form in item.pertanyaan_form %}
-                                <td>
-                                {{ p_form }}
-                                <button type="button" class="btn btn-danger btn-sm delete-row-btn"><i class="bi bi-trash3-fill"></i></button>
-                                </td>
-                                {% endfor %}
-                                
-                                <td>
-                                    <table class="table table-sm table-bordered mb-0 jawaban-table">
-                                        {% for j_form in item.jawaban_form %}
-                                        <tr class="jawaban-row">
-                                            {% for field in j_form %}
-                                            <td>{{ field }}</td>
-                                            {% endfor %}
-                                            <td class="align-middle">
-                                                <input type="hidden" name="jawaban_ids" value="{{ j_form.instance.id }}">
-                                                <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn"><i class="bi bi-trash3-fill"></i></button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    </table>
-                                    <button type="button" class="btn btn-secondary btn-sm add-jawaban-btn mt-1"><i class="bi bi-plus-circle me-2"></i>Add Answers</button>
-                                </td>
-                            </tr>
+                        <tbody>
+                        <!-- ListView -->
+                        {% for item in items %}
+                        <tr>
+                            <td class="clickable table-secondary">{{ forloop.counter }}</td>
+                            {% for field in fields %}
+                            <td>{{ item|get_field_value:field|upper|safe }}</td>
                             {% endfor %}
-                            <!-- End ListtView -->
-
-                            <!-- Create new row pertanyaan -->
-                            <tr class="template-row new-template-row">
-                                <td class="row-number">{% if items %}{{ items|length|add:"1" }}{% else %}1{% endif %}</td>
-                                {% for p_form in pertanyaan_form %}
-                                <td>{{ p_form }} <button type="button" class="btn btn-danger btn-sm delete-row-btn"><i class="bi bi-trash3-fill"></i></button></td>
-                                {% endfor %}
-                                <td>
-                                    <table class="table table-sm table-bordered mb-0 jawaban-table">
-                                        <tr class="jawaban-row">
-                                            {% for j_form in jawaban_form %}
-                                            <td>{{ j_form }}</td>
-                                            {% endfor %}
-                                            <td class="align-middle">
-                                                <button type="button" class="btn btn-danger btn-sm delete-jawaban-btn"><i class="bi bi-trash3-fill"></i></button>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <button type="button" class="btn btn-secondary btn-sm add-jawaban-btn mt-1"><i class="bi bi-plus-circle me-2"></i>Add Answers</button>
-                                </td>
-                            </tr>
-                            <!-- end new row pertanyaan -->
-                        </tbody>
+                        </tr>
+                        {% endfor %}
+                        <!-- End ListView -->
+                    </tbody>
                     </table>
-                    <button type="button" class="btn btn-secondary add-row-btn"><i class="bi bi-plus-circle me-2"></i>Add Rows</button>
-                </div>
-            </div>
-            <!-- End Create -->
-            
-            <div class="tile-footer">
-                <div class="row">
-                    <div class="col-md-8 col-md-offset-3">
-                        <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
-                    </div>
                 </div>
             </div>
 
+            <div class="row">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                    {% for kategori in formset.kategori_data %}
+                        <tr>
+                            <th colspan=2 class="table-secondary">{{ forloop.counter }}. {{ kategori.kategori_nama }}</th>
+                        </tr>
+                        {% for pertanyaan in kategori.pertanyaan %}
+                        <tr>
+                            <td><strong>{{ pertanyaan.question_text }}</strong></td>
+                            <td>{{ formset|get_item:pertanyaan.field_name }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                    </table>
+                </div>
+            </div>
         </form>
+        <div class="tile-footer">
+            <div class="row">
+                <div class="col-md-8 col-md-offset-3">
+                    <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
-
-{% block modal %}
-    {% include 'includes/modal.html' %}
-{% endblock modal %}
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script>
-    $(document).ready(function () {
-    function updateRowNumbers() {
-        $('.add-row-tbody tr.template-row').each(function (index) {
-            $(this).find('.row-number').text(index + 1);
-        });
-    }
-
-    function updateInputNames() {
-        // Hanya untuk baris baru (create)
-        $('.add-row-tbody tr.new-template-row').each(function (rowIndex) {
-            // Input pertanyaan
-            $(this).find('input[name="teks_pertanyaan"]').attr('name', 'teks_pertanyaan');
-
-            // Jawaban inputs
-            $(this).find('.jawaban-row').each(function () {
-                $(this).find('input.jawaban-teks').attr('name', `jawaban_${rowIndex}_teks[]`);
-                $(this).find('input.jawaban-poin').attr('name', `jawaban_${rowIndex}_poin[]`);
-            });
-        });
-    }
-
-    // Tambah baris pertanyaan
-    $('.add-row-btn').click(function () {
-        let $templateRow = $('.add-row-tbody tr.new-template-row').first();
-        if (!$templateRow.length) {
-            alert('Harap buat minimal 1 row baru secara manual dulu.');
-            return;
-        }
-
-        let $newRow = $templateRow.clone();
-        $newRow.find('input, select, textarea').val('');
-
-        // Update nama input dengan index baru
-        $('.add-row-tbody tr.new-template-row').each(function (index) {
-            $(this).find('input.teks_pertanyaan').attr('name', 'teks_pertanyaan');
-            $(this).find('.jawaban-row').each(function () {
-                $(this).find('input.jawaban-teks').attr('name', `jawaban_${index}_teks[]`);
-                $(this).find('input.jawaban-poin').attr('name', `jawaban_${index}_poin[]`);
-            });
-        });
-
-        $('.add-row-tbody').append($newRow);
-        updateRowNumbers();
-        updateInputNames();
-    });
-
-    // Hapus baris pertanyaan
-    $('.add-row-tbody').on('click', '.delete-row-btn', function () {
-        const $row = $(this).closest('tr.template-row');
-        const rowCount = $('.add-row-tbody tr.template-row').length;
-
-        if (rowCount <= 1) {
-            alert("Cannot delete. At least one row must remain.");
-            return;
-        }
-
-        const pertanyaanId = $row.find('input[name^="pertanyaan-"]').val();
-        if (pertanyaanId) {
-            $('<input>', {
-                type: 'hidden',
-                name: 'deleted_pertanyaan_ids',
-                value: pertanyaanId
-            }).appendTo('form');
-        }
-
-        $row.remove();
-
-        updateRowNumbers();
-        updateInputNames();
-    });
-
-    // Tambah baris jawaban di row baru
-    $('.add-row-tbody').on('click', '.add-jawaban-btn', function () {
-        let $tbody = $(this).closest('td').find('tbody');
-        let $firstRow = $tbody.find('tr.jawaban-row').first();
-        let $newRow = $firstRow.clone(true);
-
-        $newRow.find('input').val('');
-
-        // Ambil id pertanyaan dari data attribute tr.template-row
-        let $pertanyaanRow = $(this).closest('tr.template-row');
-        let pertanyaanId = $pertanyaanRow.data('pertanyaan-id'); // ambil dari data-pertanyaan-id
-
-        if (!pertanyaanId) {
-            // Kalau data-pertanyaan-id tidak ada, fallback ke row index
-            let rowIndex = $('.add-row-tbody tr.template-row').index($pertanyaanRow);
-            pertanyaanId = rowIndex; // atau cara lain jika mau fallback
-        }
-
-        // Update nama input jawaban sesuai pertanyaan id
-        $newRow.find('input.jawaban-teks').attr('name', `jawaban-${pertanyaanId}-teks[]`);
-        $newRow.find('input.jawaban-poin').attr('name', `jawaban-${pertanyaanId}-poin[]`);
-
-        $tbody.append($newRow);
-        updateInputNames();
-    });
-
-    // Hapus baris jawaban
-    $('.add-row-tbody').on('click', '.delete-jawaban-btn', function () {
-        const $row = $(this).closest('tr.jawaban-row');
-        const $tbody = $row.closest('tbody');
-        const rowCount = $tbody.find('tr.jawaban-row').length;
-
-        if (rowCount <= 1) {
-            alert('There must be at least one answer.');
-            return;
-        }
-
-        const jawabanId = $row.find('input[name="jawaban_ids"]').val();
-        if (jawabanId) {
-            $('<input>', {
-                type: 'hidden',
-                name: 'deleted_jawaban_ids',
-                value: jawabanId
-            }).appendTo('form');
-        }
-
-        $row.remove();
-        updateInputNames();
-    });
-
-    // Initial update input names
-    updateInputNames();
-    updateRowNumbers();
-    
-    });
-</script>
 
 {% endblock content %}

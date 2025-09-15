@@ -1,5 +1,5 @@
 from django import forms
-from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban, KategoriPerJabatan
+from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban, KategoriPerJabatan, HasilPenilaian
 from django.utils import timezone
 
 class DepartemenForm(forms.ModelForm):
@@ -241,3 +241,39 @@ class KategoriPerJabatanForm(forms.ModelForm):
             # Ganti id HTML berdasarkan instance
             if instance_id:
                 field.widget.attrs['id'] = f'{field_name}_{instance_id}'
+
+class ResponseForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        self.jabatan = kwargs.pop('jabatan', None)
+        super().__init__(*args, **kwargs)
+
+        self.kategori_data = []  # untuk akses di template
+
+        if self.jabatan:
+            # Ambil kategori yang terkait jabatan
+            kategori_ids = KategoriPerJabatan.objects.filter(jabatan=self.jabatan, deleted_at__isnull=True).values_list('kategori__id', flat=True)
+            kategori_queryset = KategoriPenilaian.objects.filter(id__in=kategori_ids, deleted_at__isnull=True)
+
+            for kategori in kategori_queryset:
+                questions = Pertanyaan.objects.filter(kategori=kategori, deleted_at__isnull=True)
+
+                pertanyaan_fields = []
+
+                for question in questions:
+                    jawaban_qs = Jawaban.objects.filter(pertanyaan=question, deleted_at__isnull=True)
+                    choices = [(str(j.id), j.teks_jawaban) for j in jawaban_qs]
+
+                    field_name = f"question_{question.id}"
+                    self.fields[field_name] = forms.ChoiceField(label=f"{kategori.nama_kategori} - {question.teks_pertanyaan}", choices=choices, widget=forms.RadioSelect, required=True)
+
+                    pertanyaan_fields.append({
+                        'field_name': field_name,
+                        'question_text': question.teks_pertanyaan,
+                        'choices': choices,
+                    })
+
+                self.kategori_data.append({
+                    'kategori_nama': f"{kategori.nama_kategori} ({kategori.bobot_nilai}%)",
+                    'pertanyaan': pertanyaan_fields,
+                })
+                

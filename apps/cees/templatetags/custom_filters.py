@@ -30,6 +30,10 @@ def get_field_value(obj, attr_name):
     return value
 
 @register.filter
+def get_item(dictionary, key):
+    return dictionary[key]
+
+@register.filter
 def startswith(value, arg):
     """Mengembalikan True jika 'value' dimulai dengan 'arg'."""
     if value:

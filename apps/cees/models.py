@@ -54,7 +54,7 @@ class DataKaryawan(models.Model):
         self.save()
 
 class MasaKontrak(models.Model):
-    id = models.AutoField(primary_key=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     karyawan = models.ForeignKey('DataKaryawan', on_delete=models.CASCADE, related_name='masa_kontrak')
     departemen = models.ForeignKey(Departemen, on_delete=models.CASCADE)
     jabatan = models.ForeignKey(Jabatan, on_delete=models.CASCADE)
@@ -156,3 +156,10 @@ class KategoriPerJabatan(models.Model):
         if self.pk:  # pastikan objek sudah disimpan
             kategori_names = ", ".join([f"{k.nama_kategori} ({k.bobot_nilai})" for k in self.kategori.all()])
             return f"{self.jabatan} - [{kategori_names}]"
+
+class HasilPenilaian(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    karyawan = models.ForeignKey(DataKaryawan, on_delete=models.CASCADE)
+    jawaban = models.ForeignKey(Jawaban, on_delete=models.CASCADE)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)

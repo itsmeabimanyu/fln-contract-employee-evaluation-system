@@ -4,7 +4,7 @@ from django.views.generic import (
     DetailView, UpdateView
 )
 from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban, KategoriPerJabatan
-from .forms import DepartemenForm, JabatanForm, DataKaryawanForm, UpdateDataKaryawanForm, MasaKontrakForm, KategoriPenilaianForm, PertanyaanForm, JawabanForm, KategoriPerJabatanForm
+from .forms import DepartemenForm, JabatanForm, DataKaryawanForm, UpdateDataKaryawanForm, MasaKontrakForm, KategoriPenilaianForm, PertanyaanForm, JawabanForm, KategoriPerJabatanForm, ResponseForm
 from django.shortcuts import get_object_or_404, redirect, render
 from datetime import datetime
 from django.urls import reverse, reverse_lazy
@@ -12,7 +12,7 @@ from django.contrib import messages
 
 # Create your views here.
 class ListDepartemen(TemplateView):
-    template_name = 'pages/create.html'
+    template_name = 'pages/base_create.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -111,7 +111,7 @@ class ListDepartemen(TemplateView):
         return reverse_lazy('invoice_create_manual')  # Replace with the name of the URL for your list page or another page.'''
 
 class ListJabatan(TemplateView):
-    template_name = 'pages/create.html'
+    template_name = 'pages/base_create.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -212,7 +212,7 @@ class ListJabatan(TemplateView):
         return reverse_lazy('invoice_create_manual')  # Replace with the name of the URL for your list page or another page.'''
     
 class ListKaryawan(TemplateView):
-    template_name = 'pages/create.html'
+    template_name = 'pages/base_create.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -515,7 +515,7 @@ class UpdateKaryawan(TemplateView):
     
 '''
 class CreateKategori(TemplateView):
-    template_name = 'pages/create_evaluation.html'
+    template_name = 'pages/create_category.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -557,7 +557,7 @@ class CreateKategori(TemplateView):
 '''
 
 class ListKategori(TemplateView):
-    template_name = 'pages/create.html'
+    template_name = 'pages/base_create.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -634,7 +634,7 @@ class ListKategori(TemplateView):
         return redirect(self.request.META.get('HTTP_REFERER'))
  
 class CreateKategori(TemplateView):
-    template_name = 'pages/create_evaluation.html'
+    template_name = 'pages/create_category.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -677,7 +677,7 @@ class CreateKategori(TemplateView):
         return redirect(self.request.META.get('HTTP_REFERER'))
 
 class UpdateKategori(TemplateView):
-    template_name = 'pages/create_evaluation.html'
+    template_name = 'pages/create_category.html'
 
     def dispatch(self, request, *args, **kwargs):
         # Ambil pk sekali dan simpan sebagai atribut instance
@@ -814,7 +814,7 @@ class UpdateKategori(TemplateView):
 # Note:* disini add row dimatikan karena belum fix untuk input beberapa row  (next pakai formset)
 # Note: Hapus permanen
 class ListKategoriPerJabatan(TemplateView):
-    template_name = 'pages/create.html'
+    template_name = 'pages/base_create.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -921,5 +921,86 @@ class ListKategoriPerJabatan(TemplateView):
 
         return redirect(self.request.META.get('HTTP_REFERER'))
     
+class ListPenilaianKaryawan(TemplateView):
+    template_name = 'pages/base_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Employee Evaluation'
+        context['card_title'] = 'Employee Evaluation'
+        context['fields'] = {
+            'nik': 'NIK',
+            'nama': 'Name',
+            'tempat_lahir': 'Birthplace',
+            'tanggal_lahir': 'Birthdate',
+            'departemen': 'Department',
+            'jabatan': 'Position',
+            'tgl_mulai_kontrak': 'Start Date',
+            'tgl_akhir_kontrak': 'End Date',
+            'status_karyawan': 'Status',
+        }
+
+        items = MasaKontrak.objects.filter(deleted_at__isnull=True)
+        for item in items:
+            item.nik = item.karyawan.nik
+            item.nama = item.karyawan.nama
+            item.tempat_lahir = item.karyawan.tempat_lahir
+            item.tanggal_lahir = item.karyawan.tanggal_lahir
+
+            item.buttons_action = [
+                f"""
+                <div class="bs-component">
+                    <div class="btn-group" role="group" aria-label="Basic example">
+                        <div class="btn-group" role="group" aria-label="Basic example">
+                            <button type='button' class='btn btn-sm btn-warning' onclick='window.location.href=\"{reverse('create_penilaian_karyawan', args=[item.id])}\"'><i class="bi bi-pencil-square"></i></button>
+                            <button class="btn btn-sm btn-danger" type="button" data-bs-toggle='modal' data-bs-target='#modal-second-{item.id}' title="Delete"><i class="bi bi-trash3-fill"></i></button>
+                        </div>
+                    </div>
+                </div>
+                """
+                ]
+
+        context['items'] = items
+
+        return context
+    
+class CreatePenilaianKaryawan(TemplateView):
+    template_name = 'pages/create_evaluation.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        self.masakontrak = MasaKontrak.objects.get(id=pk, deleted_at__isnull=True)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        form = ResponseForm(jabatan=self.masakontrak.jabatan)
+        context = self.get_context_data(**kwargs)
+        context['formset'] = form
+        return self.render_to_response(context)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Employee Evaluation'
+        context['card_title'] = 'Employee Evaluation'
+        context['fields'] = {
+            'nik': 'NIK',
+            'nama': 'Name',
+            'tempat_lahir': 'Birthplace',
+            'tanggal_lahir': 'Birthdate',
+            'departemen': 'Department',
+            'jabatan': 'Position',
+            'tgl_mulai_kontrak': 'Start Date',
+            'tgl_akhir_kontrak': 'End Date',
+            'status_karyawan': 'Status',
+        }
+        items = MasaKontrak.objects.filter(id=self.masakontrak.id, deleted_at__isnull=True)
+        for item in items:
+            item.nik = item.karyawan.nik
+            item.nama = item.karyawan.nama
+            item.tempat_lahir = item.karyawan.tempat_lahir
+            item.tanggal_lahir = item.karyawan.tanggal_lahir
+
+        context['items'] = items
+        return context
 
     
