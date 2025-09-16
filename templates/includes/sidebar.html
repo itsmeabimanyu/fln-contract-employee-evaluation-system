@@ -7,14 +7,15 @@
     </div>
     <ul class="app-menu">
         <li><a class="app-menu__item active" href="dashboard.html"><i class="app-menu__icon bi bi-speedometer"></i><span class="app-menu__label">Dashboard</span></a></li>
-        <li><a class="app-menu__item active" href="{% url 'list_penilaian_karyawan' %}"><i class="app-menu__icon bi bi-clipboard-check-fill"></i><span class="app-menu__label">Employee Evaluation</span></a></li>
-        <li class="treeview"><a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon bi bi-database-fill"></i><span class="app-menu__label">Master Evaluation</span><i class="treeview-indicator bi bi-chevron-right"></i></a>
+        <li class="treeview"><a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon bi bi-person-fill-check"></i><span class="app-menu__label">Employee Evaluation</span><i class="treeview-indicator bi bi-chevron-right"></i></a>
             <ul class="treeview-menu">
-                <li><a class="treeview-item" href="{% url 'list_kategori' %}"><i class="icon bi bi-circle-fill"></i>Evaluation Form</a></li>
+                <li><a class="treeview-item" href="{% url 'list_penilaian_karyawan' %}"><i class="icon bi bi-circle-fill"></i>Evaluation</a></li>
+                <li><a class="treeview-item" href="{% url 'upload_excel_absensi' %}"><i class="icon bi bi-circle-fill"></i>Import Attendance</a></li>
                 <li><a class="treeview-item" href="{% url 'list_mapping' %}"><i class="icon bi bi-circle-fill"></i>Assign Categories</a></li>
+                <li><a class="treeview-item" href="{% url 'list_kategori' %}"><i class="icon bi bi-circle-fill"></i>Evaluation Form</a></li>
             </ul>
         </li>
-        <li class="treeview"><a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon bi bi-database-fill"></i><span class="app-menu__label">Master Employee</span><i class="treeview-indicator bi bi-chevron-right"></i></a>
+        <li class="treeview"><a class="app-menu__item" href="#" data-toggle="treeview"><i class="app-menu__icon bi bi bi-database-fill-gear"></i><span class="app-menu__label">Master Employee</span><i class="treeview-indicator bi bi-chevron-right"></i></a>
             <ul class="treeview-menu">
                 <li><a class="treeview-item" href="{% url 'list_karyawan' %}"><i class="icon bi bi-circle-fill"></i> Employee</a></li>
                 <li><a class="treeview-item" href="{% url 'list_departemen' %}"><i class="icon bi bi-circle-fill"></i> Department</a></li>

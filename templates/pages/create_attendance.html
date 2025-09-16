@@ -1,0 +1,61 @@
+{% extends 'layouts/base.html' %}
+{% load static custom_filters %}
+<!-- [ Main Content ] start -->
+{% block content %}
+
+<div class="tile mb-4">
+    <div class="page-header">
+        <form method="post" id="myForm" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-lg-12">
+                    <h3 class="tile-title line-head">{{ card_title }}</h3>
+                </div>
+                {{ formset.as_p }}
+            </div>
+
+
+            <div class="tile-footer">
+                <div class="row">
+                    <div class="col-md-8 col-md-offset-3">
+                        <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+{% if success %}
+<div class="tile mb-4">
+    <div class="row">
+        {% if items %}
+        <table id="add-row" class="table table-sm table-hover table-bordered" >
+            <thead>
+                <tr>
+                    <th>#</th>
+                    {% for field_key, field_label in fields.items %}
+                        <th>{{ field_label }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    {% for field in fields %}
+                    <td>{{ item|get_field_value:field|upper|safe }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{{ error }}
+
+{% endblock content %}

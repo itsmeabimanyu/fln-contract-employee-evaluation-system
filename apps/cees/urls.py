@@ -6,17 +6,17 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('', lambda request: redirect('list_departemen')),
-    path('master/department/', views.ListDepartemen.as_view(), name='list_departemen'),
-    path('master/position/', views.ListJabatan.as_view(), name='list_jabatan'),
-    path('master/employee/', views.ListKaryawan.as_view(), name='list_karyawan'),
+    path('master/department/list', views.ListDepartemen.as_view(), name='list_departemen'),
+    path('master/position/list/', views.ListJabatan.as_view(), name='list_jabatan'),
+    path('master/employee/list/', views.ListKaryawan.as_view(), name='list_karyawan'),
     path('master/employee/update/<uuid:pk>/', views.UpdateKaryawan.as_view(), name='update_karyawan'),
-    path('master/form/category/', views.CreateKategori.as_view(), name='create_kategori'),
-    path('master/form/evaluation-category/', views.ListKategori.as_view(), name='list_kategori'),
-    path('master/form/evaluation-category/update/<uuid:pk>', views.UpdateKategori.as_view(), name='update_kategori'),
-
-    path('master/form/assign-category/', views.ListKategoriPerJabatan.as_view(), name='list_mapping'),
-    path('employee-evaluation/', views.ListPenilaianKaryawan.as_view(), name='list_penilaian_karyawan'),
-    path('employee-evaluation/<uuid:pk>', views.CreatePenilaianKaryawan.as_view(), name='create_penilaian_karyawan'),
+    path('evaluation/form/', views.CreateKategori.as_view(), name='create_kategori'),
+    path('evaluation/list/', views.ListKategori.as_view(), name='list_kategori'),
+    path('evaluation/update/<uuid:pk>/', views.UpdateKategori.as_view(), name='update_kategori'),
+    path('evaluation/assign-category/list/', views.ListKategoriPerJabatan.as_view(), name='list_mapping'),
+    path('evaluation/employee/list/', views.ListPenilaianKaryawan.as_view(), name='list_penilaian_karyawan'),
+    path('evaluation/form/<uuid:pk>', views.CreatePenilaianKaryawan.as_view(), name='create_penilaian_karyawan'),
+    path('evaluation/import/attendance/', views.UploadExcelAbsensi.as_view(), name='upload_excel_absensi'),
 ]
 
 # Tambahkan register/ hanya jika dalam mode DEBUG (development)

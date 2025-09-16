@@ -10,7 +10,11 @@ register = template.Library()
 @register.filter
 def get_field_value(obj, attr_name):
     # Mengambil nilai field dari objek model berdasarkan nama field (attr_name)
-    value = getattr(obj, attr_name, None)
+    # Ambil value dari dict atau object
+    if isinstance(obj, dict):
+        value = obj.get(attr_name, None)
+    else:
+        value = getattr(obj, attr_name, None)
     #  Menangani FieldFile (misalnya ImageField atau FileField pada model)
     if isinstance(value, FieldFile):
         return os.path.basename(value.name)

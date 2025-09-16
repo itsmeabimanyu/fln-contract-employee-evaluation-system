@@ -4,7 +4,12 @@ from django.views.generic import (
     DetailView, UpdateView
 )
 from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban, KategoriPerJabatan
-from .forms import DepartemenForm, JabatanForm, DataKaryawanForm, UpdateDataKaryawanForm, MasaKontrakForm, KategoriPenilaianForm, PertanyaanForm, JawabanForm, KategoriPerJabatanForm, ResponseForm
+from .forms import (
+    DepartemenForm, JabatanForm, DataKaryawanForm,
+    UpdateDataKaryawanForm, MasaKontrakForm, KategoriPenilaianForm,
+    PertanyaanForm, JawabanForm, KategoriPerJabatanForm,
+    ResponseForm, UploadExcelForm
+)
 from django.shortcuts import get_object_or_404, redirect, render
 from datetime import datetime
 from django.urls import reverse, reverse_lazy
@@ -1003,4 +1008,102 @@ class CreatePenilaianKaryawan(TemplateView):
         context['items'] = items
         return context
 
+import pandas as pd
+
+class UploadExcelAbsensi(TemplateView):
+    template_name = 'pages/create_attendance.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Import Attendance'
+        context['card_title'] = 'Import Attendance'
+        context['formset'] = UploadExcelForm
+        context['dis_add_row'] = True
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        form = UploadExcelForm(request.POST, request.FILES)
+        context = self.get_context_data()
+
+        if form.is_valid():
+            excel_file = request.FILES['file']
+
+            try:
+                df = pd.read_excel(excel_file)
+
+                allowed_keterangan = [
+                    "cuti potong gaji", 
+                    "datang terlambat", 
+                    "datang tidak absen", 
+                    "pulang cepat"
+                ]
+
+                keterangan_list = df.iloc[:, 7].astype(str).str.lower().str.strip()
+
+                if not keterangan_list.isin(allowed_keterangan).all():
+                    context['error'] = "Gagal: Terdapat keterangan tidak valid di file yang diunggah."
+                    return render(request, self.template_name, context)
+
+                # Ambil kolom 1 dan 12 kalau cukup kolom
+                if df.shape[1] >= 12:
+                    kolom_nik = df.iloc[:, 0]
+                    kolom_nama = df.iloc[:, 1]
+                    kolom_keterangan = df.iloc[:, 7]
+                    kolom_tanggal_masuk = df.iloc[:, 9]
+                    kolom_jam_masuk = df.iloc[:, 10]
+                    kolom_tanggal_keluar = df.iloc[:, 11]
+                    kolom_jam_keluar = df.iloc[:, 12]
+
+                    '''
+                    print("Isi Kolom 1 (NIK):")
+                    for nik in kolom_nik:
+                        print(nik)
+
+                    print("\nIsi Kolom 8:")
+                    for keterangan in kolom_keterangan:
+                        print(keterangan)
+                    '''
+
+                    items = []
+                    for nik, nama, ket, tgl_in, jam_in, tgl_out, jam_out in zip(
+                        kolom_nik, kolom_nama, kolom_keterangan,
+                        kolom_tanggal_masuk, kolom_jam_masuk,
+                        kolom_tanggal_keluar, kolom_jam_keluar
+                    ):
+                        # absen_masuk = f"{tgl_in} {jam_in}".strip()
+                        # absen_keluar = f"{tgl_out} {jam_out}".strip()
+
+                        items.append({
+                            'kolom_nik': str(nik),
+                            'kolom_nama': str(nama),
+                            'kolom_keterangan': str(ket),
+                            # 'absen_masuk': str(absen_masuk),
+                            # 'absen_keluar': str(absen_keluar),
+                            'tgl_absen_masuk': str(tgl_in),
+                            'jam_absen_masuk': str(jam_in),
+                            'tgl_absen_keluar': str(tgl_out),
+                            'jam_absen_keluar': str(jam_out),
+                        })
+
+                    context['items'] = items
+                    context['fields'] = {
+                        'kolom_nik': 'NIK',
+                        'kolom_nama': 'Employee Name',
+                        'kolom_keterangan': 'Reason',
+                        # 'absen_masuk': 'Actual Date Time In',
+                        # 'absen_keluar': 'Actual Date Time Out',
+                        'tgl_absen_masuk': 'Actual Date In',
+                        'jam_absen_masuk': 'Actual Time In',
+                        'tgl_absen_keluar': 'Actual Date Out',
+                        'jam_absen_keluar': 'Actual Time Out',
+                    }
+
+                    context['success'] = True
+
+            except Exception as e:
+                context['error'] = f"Gagal membaca file Excel: {e}"
+
+        return render(request, self.template_name, context)
+
+    
     

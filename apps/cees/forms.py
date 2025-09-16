@@ -277,3 +277,14 @@ class ResponseForm(forms.Form):
                     'pertanyaan': pertanyaan_fields,
                 })
                 
+class UploadExcelForm(forms.Form):
+    file = forms.FileField(
+        label='Select an Excel file',
+        widget=forms.FileInput(attrs={'accept': '.xls,.xlsx'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control mt-2 mb-2'})
+            field.widget.attrs.update({'autocomplete': 'off'})
