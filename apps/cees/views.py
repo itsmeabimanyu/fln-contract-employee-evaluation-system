@@ -3,7 +3,11 @@ from django.views.generic import (
     CreateView, TemplateView, View, ListView,
     DetailView, UpdateView
 )
-from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban, KategoriPerJabatan
+from .models import (
+    Departemen, Jabatan, DataKaryawan,
+    MasaKontrak, KategoriPenilaian, Pertanyaan,
+    Jawaban, KategoriPerJabatan, DataAbsensiSementara)
+
 from .forms import (
     DepartemenForm, JabatanForm, DataKaryawanForm,
     UpdateDataKaryawanForm, MasaKontrakForm, KategoriPenilaianForm,
@@ -1009,7 +1013,8 @@ class CreatePenilaianKaryawan(TemplateView):
         return context
 
 import pandas as pd
-
+import json
+from django.utils.safestring import mark_safe
 class UploadExcelAbsensi(TemplateView):
     template_name = 'pages/create_attendance.html'
 
@@ -1025,6 +1030,7 @@ class UploadExcelAbsensi(TemplateView):
         form = UploadExcelForm(request.POST, request.FILES)
         context = self.get_context_data()
 
+        # Step 1: Upload Excel 
         if form.is_valid():
             excel_file = request.FILES['file']
 
@@ -1042,7 +1048,7 @@ class UploadExcelAbsensi(TemplateView):
 
                 if not keterangan_list.isin(allowed_keterangan).all():
                     context['error'] = "Gagal: Terdapat keterangan tidak valid di file yang diunggah."
-                    return render(request, self.template_name, context)
+                    # return render(request, self.template_name, context)
 
                 # Ambil kolom 1 dan 12 kalau cukup kolom
                 if df.shape[1] >= 12:
@@ -1085,6 +1091,9 @@ class UploadExcelAbsensi(TemplateView):
                             'jam_absen_keluar': str(jam_out),
                         })
 
+                    # Simpan sementara ke session
+                    request.session['uploaded_items'] = items
+
                     context['items'] = items
                     context['fields'] = {
                         'kolom_nik': 'NIK',
@@ -1103,6 +1112,26 @@ class UploadExcelAbsensi(TemplateView):
             except Exception as e:
                 context['error'] = f"Gagal membaca file Excel: {e}"
 
+        # Step 2: Confirm Simpan ke DB
+        if 'confirm' in request.POST:
+            items = request.session.get('uploaded_items')
+            
+            if items:
+                DataAbsensiSementara.objects.all().delete()
+                for item in items:
+                    DataAbsensiSementara.objects.create(
+                        nik=item['kolom_nik'],
+                        # nama=item['kolom_nama'],
+                        keterangan=item['kolom_keterangan'],
+                        # absen_masuk=item['absen_masuk'],
+                        # absen_keluar=item['absen_keluar'],
+                    )
+                context['success'] = "Data berhasil disimpan ke database."
+            else:
+                context['error'] = "Tidak ada data untuk disimpan."
+
+            return redirect(self.request.META.get('HTTP_REFERER'))
+                
         return render(request, self.template_name, context)
 
     

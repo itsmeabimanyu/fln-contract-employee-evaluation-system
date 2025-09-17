@@ -163,3 +163,8 @@ class HasilPenilaian(models.Model):
     jawaban = models.ForeignKey(Jawaban, on_delete=models.CASCADE)
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+class DataAbsensiSementara(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    nik = models.CharField(max_length=50)
+    keterangan = models.CharField(max_length=100)
