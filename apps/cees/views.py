@@ -6,7 +6,9 @@ from django.views.generic import (
 from .models import (
     Departemen, Jabatan, DataKaryawan,
     MasaKontrak, KategoriPenilaian, Pertanyaan,
-    Jawaban, KategoriPerJabatan, DataAbsensiSementara)
+    Jawaban, KategoriPerJabatan, DataAbsensiSementara,
+    HasilPenilaian
+    )
 
 from .forms import (
     DepartemenForm, JabatanForm, DataKaryawanForm,
@@ -1015,53 +1017,24 @@ class CreatePenilaianKaryawan(TemplateView):
         return context
     
     def post(self, request, *args, **kwargs):
-
         formset_1 = AbsensiForm(request.POST)
 
         """ Note. Custom kategori Absensi """
         if formset_1.is_valid():
-
-            kategori_obj, created = KategoriPenilaian.objects.get_or_create(
-                nama_kategori="KEHADIRAN",
-                defaults={'bobot_nilai': 20, 'deleted_at': None}
-            )
-
-            pertanyaan_obj, created = Pertanyaan.objects.get_or_create(
-                kategori=kategori_obj,
-                teks_pertanyaan='ALASAN',
-                defaults={'deleted_at': None}
-            )
-
-            '''
             for field_name, value in formset_1.cleaned_data.items():
-                pertanyaan_obj, created = Pertanyaan.objects.get_or_create(
-                    kategori=kategori_obj,
-                    text_pertanyaan=field_name,
-                    defaults={'deleted_at': None}
-                )
-            '''
-
-            poin = {
-                'mangkir': 5,
-                'tanpa_absen': 0.25,
-                'terlambat': 0.25,
-                'izin_cepat': 0.25,
-            }
-            
-            for field_name, value in formset_1.cleaned_data.items():
-                jawaban_obj, created = Jawaban.objects.get_or_create(
-                    pertanyaan=pertanyaan_obj,
-                    teks_jawaban=field_name,
-                    poin = poin[field_name],
-                    defaults={'deleted_at': None}
-                )
-
-            print(formset_1.cleaned_data['mangkir'])
-
+                if field_name.startswith('jawaban_') and value is not None:
+                    # Ambil ID dari field name: jawaban_<id>
+                    jawaban_id = field_name.split('_', 1)[1]
+                    jawaban = Jawaban.objects.get(id=jawaban_id)
+                    
+                    HasilPenilaian.objects.create(
+                        karyawan=self.masakontrak.karyawan,
+                        jawaban=jawaban,
+                        nilai=value
+                    )
 
         return redirect(self.request.META.get('HTTP_REFERER'))
     
-
 """ Note. Custom kategori Absensi """
 import pandas as pd
 

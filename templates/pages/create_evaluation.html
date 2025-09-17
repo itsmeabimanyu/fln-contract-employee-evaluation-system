@@ -54,7 +54,7 @@
                                         <tr>
                                             <th colspan=2 class="table-secondary">{{ forloop.counter }}. {{ kategori.kategori_nama }}</th>
                                         </tr>
-                                        {% for pertanyaan in kategori.pertanyaan %}
+                                        {% for pertanyaan in kategori.pertanyaan_fields %}
                                         <tr>
                                             <td><strong>{{ pertanyaan.question_text }}</strong></td>
                                             <td>{{ formset|get_item:pertanyaan.field_name }}</td>
@@ -80,15 +80,17 @@
                             <div class="row mt-3">
                                 <div class="table-responsive">
                                     <table class="table table-bordered">
+                                    {% for kategori in formset_1.kategori_data %}
                                         <tr>
-                                            <th colspan=2 class="table-secondary">{{ formset.kategori_data|length|add:"1" }}. {{ formset_1.title }}</th>
+                                            <th colspan=2 class="table-secondary">{{ formset.kategori_data|length|add:"1" }}. {{ kategori.kategori_nama }}</th>
                                         </tr>
-                                        {% for field in formset_1 %}
+                                         {% for pertanyaan in kategori.pertanyaan_fields %}
                                         <tr>
-                                            <th>{{ field.label|upper }}</th>
-                                            <th>{{ field }}</th>
+                                            <td><strong>{{ pertanyaan.question_text }}</strong></td>
+                                            <td>{{ formset_1|get_item:pertanyaan.field_name }}</td>
                                         </tr>
                                         {% endfor %}
+                                    {% endfor %}
                                     </table>
                                     <div class="tile-footer">
                                         <div class="row">
@@ -106,5 +108,27 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Aktifkan tab terakhir dari localStorage
+    var lastTab = localStorage.getItem('activeTab');
+    if (lastTab) {
+        var trigger = document.querySelector('a[href="' + lastTab + '"]');
+        if (trigger) {
+            var tab = new bootstrap.Tab(trigger);
+            tab.show();
+        }
+    }
+
+    // Simpan tab saat diklik
+    var tabLinks = document.querySelectorAll('a[data-bs-toggle="tab"]');
+    tabLinks.forEach(function (tabLink) {
+        tabLink.addEventListener('shown.bs.tab', function (e) {
+            localStorage.setItem('activeTab', e.target.getAttribute('href'));
+        });
+    });
+});
+</script>
 
 {% endblock content %}

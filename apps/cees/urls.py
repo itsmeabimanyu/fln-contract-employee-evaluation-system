@@ -16,6 +16,7 @@ urlpatterns = [
     path('evaluation/assign-category/list/', views.ListKategoriPerJabatan.as_view(), name='list_mapping'),
     path('evaluation/employee/list/', views.ListPenilaianKaryawan.as_view(), name='list_penilaian_karyawan'),
     path('evaluation/form/<uuid:pk>', views.CreatePenilaianKaryawan.as_view(), name='create_penilaian_karyawan'),
+    # Note. Custom kategori Absensi
     path('evaluation/import/attendance/', views.UploadExcelAbsensi.as_view(), name='upload_excel_absensi'),
 ]
 

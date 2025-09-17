@@ -92,7 +92,7 @@ class KategoriPenilaian(models.Model):
         ordering = ['nama_kategori']
 
     def __str__(self):
-        return f"{self.nama_kategori} ({self.bobot_nilai})"
+        return f"{self.nama_kategori} ({self.bobot_nilai}%)"
     
     def soft_delete(self):
         self.deleted_at = timezone.now()  # Set waktu penghapusan
@@ -130,17 +130,6 @@ class Jawaban(models.Model):
     class Meta:
         ordering = ['poin']
     
-"""
-class HasilPenilaian(models.Model):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    karyawan = models.ForeignKey(DataKaryawan, on_delete=models.CASCADE)
-    pertanyaan = models.ForeignKey(Pertanyaan, on_delete=models.CASCADE)
-    jawaban = models.CharField(max_length=255)
-
-    def __str__(self):
-        return f"{self.karyawan.nama} - {self.pertanyaan.nama_pertanyaan}"
-"""
-
 class KategoriPerJabatan(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     jabatan = models.ForeignKey(Jabatan, on_delete=models.CASCADE)
@@ -161,6 +150,12 @@ class HasilPenilaian(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     karyawan = models.ForeignKey(DataKaryawan, on_delete=models.CASCADE)
     jawaban = models.ForeignKey(Jawaban, on_delete=models.CASCADE)
+    nilai = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2,
+        null=True,
+        blank=True 
+    )
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
