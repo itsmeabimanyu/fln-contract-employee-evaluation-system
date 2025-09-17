@@ -1,5 +1,10 @@
 from django import forms
-from .models import Departemen, Jabatan, DataKaryawan, MasaKontrak, KategoriPenilaian, Pertanyaan, Jawaban, KategoriPerJabatan, HasilPenilaian
+from .models import (
+    Departemen, Jabatan, DataKaryawan,
+    MasaKontrak, KategoriPenilaian, Pertanyaan,
+    Jawaban, KategoriPerJabatan, HasilPenilaian, DataAbsensiSementara
+)
+
 from django.utils import timezone
 
 class DepartemenForm(forms.ModelForm):
@@ -247,6 +252,17 @@ class ResponseForm(forms.Form):
         self.jabatan = kwargs.pop('jabatan', None)
         super().__init__(*args, **kwargs)
 
+        pertanyaan_list = [
+            ('tanpa absen', 'dtg tanpa abesn')
+        ]
+
+        for field_name, label in pertanyaan_list:
+            self.fields[field_name] = forms.IntegerField(
+                label = label,
+                min_value=0,
+                required=True
+            )
+
         self.kategori_data = []  # untuk akses di template
 
         if self.jabatan:
@@ -276,6 +292,48 @@ class ResponseForm(forms.Form):
                     'kategori_nama': f"{kategori.nama_kategori} ({kategori.bobot_nilai}%)",
                     'pertanyaan': pertanyaan_fields,
                 })
+
+
+        """ Note. Custom kategori Absensi """
+        
+        self.kategori_data = []
+
+        kategori_absensi_queryset = KategoriPenilaian.objects.filter(
+            nama_kategori="KEHADIRAN", deleted_at__isnull=True
+        )
+
+        for kategori in kategori_absensi_queryset:
+            attendance_questions = Pertanyaan.objects.filter(
+                kategori=kategori, deleted_at__isnull=True
+            )
+            pertanyaan_fields = []
+
+            for question in attendance_questions:
+                jawaban_qs = Jawaban.objects.filter(pertanyaan=question, deleted_at__isnull=True)
+                jawaban_fields = []
+
+                for jawaban in jawaban_qs:
+                    field_name = f"question_{question.id}_jawaban_{jawaban.id}"
+                    self.fields[field_name] = forms.CharField(
+                        label=f"{jawaban.teks_jawaban}",
+                        required=False,
+                        widget=forms.TextInput(attrs={'placeholder': 'Isi nilai atau keterangan...'})
+                    )
+
+                    jawaban_fields.append({
+                        'field_name': field_name,
+                        'jawaban_text': jawaban.teks_jawaban,
+                    })
+
+                pertanyaan_fields.append({
+                    'question_text': question.teks_pertanyaan,
+                    'jawaban_fields': jawaban_fields,
+                })
+
+            self.kategori_data.append({
+                'kategori_nama': f"{kategori.nama_kategori} ({kategori.bobot_nilai}%)",
+                'pertanyaan': pertanyaan_fields,
+            })
                 
 class UploadExcelForm(forms.Form):
     file = forms.FileField(
@@ -288,3 +346,102 @@ class UploadExcelForm(forms.Form):
         for field_name, field in self.fields.items():
             field.widget.attrs.update({'class': 'form-control mt-2 mb-2'})
             field.widget.attrs.update({'autocomplete': 'off'})
+
+""" Note. Custom kategori Absensi """
+class AbsensiForm(forms.Form):
+    title = "KEHADIRAN (20%)"
+
+    '''
+    kategori = forms.CharField(
+        label="",
+        max_length=100,
+        initial="Kehadiran",
+        widget=forms.HiddenInput()
+
+    )
+
+    bobot_nilai = forms.CharField(
+        label="",
+        max_length=100,
+        initial="20",
+        widget=forms.HiddenInput()
+
+    )
+    '''
+
+    '''
+    mangkir = forms.IntegerField(label="Mangkir/Absen (Potong Gaji/Cuti)", min_value=0, initial=0)
+    tanpa_absen = forms.IntegerField(label="Datang/Pulang Tanpa Absen", min_value=0, initial=0)
+    terlambat = forms.IntegerField(label="Terlambat", min_value=0, initial=0)
+    izin_cepat = forms.IntegerField(label="Izin/Pulang Cepat", min_value=0, initial=0)
+    '''
+
+    mangkir = forms.CharField(label="Mangkir/Absen (Potong Gaji/Cuti)")
+    tanpa_absen = forms.CharField(label="Datang/Pulang Tanpa Absen")
+    terlambat = forms.CharField(label="Terlambat")
+    izin_cepat = forms.CharField(label="Izin/Pulang Cepat")
+
+    # Bobot nilai untuk masing-masing pelanggaran
+    bobot = {
+        'mangkir': 5,
+        'tanpa_absen': 0.25,
+        'terlambat': 0.25,
+        'izin_cepat': 0.25,
+    }
+
+    def __init__(self, *args, **kwargs):
+        self.karyawan = kwargs.pop('karyawan', None)
+        super().__init__(*args, **kwargs)
+
+        if self.karyawan:
+            nik = str(self.karyawan.nik)  # atau self.karyawan.get('nik')
+
+            """ Catatan:
+            exact → Pencocokan harus persis sama dan case-sensitive.
+            iexact → Pencocokan harus sama persis tapi case-insensitive.
+            """
+
+            count_terlambat = DataAbsensiSementara.objects.filter(
+                nik=nik,
+                keterangan__iexact="datang terlambat"
+            ).count()
+
+            self.fields['terlambat'].initial = count_terlambat
+
+            count_izin_cepat = DataAbsensiSementara.objects.filter(
+                nik=nik,
+                keterangan__iexact="pulang cepat"
+            ).count()
+
+            self.fields['izin_cepat'].initial = count_izin_cepat
+
+            count_dtg_tanpa_absen = DataAbsensiSementara.objects.filter(
+                nik=nik,
+                keterangan__iexact="datang tidak absen"
+            ).count()
+
+            count_plg_tanpa_absen = DataAbsensiSementara.objects.filter(
+                nik=nik,
+                keterangan__iexact="pulang tidak absen"
+            ).count()
+
+            self.fields['tanpa_absen'].initial = count_dtg_tanpa_absen + count_plg_tanpa_absen
+
+            count_mangkir = DataAbsensiSementara.objects.filter(
+                nik=nik,
+                keterangan__iexact="mangkir / tanpa alasan"
+            ).count()
+
+            count_cuti_pot_gaji = DataAbsensiSementara.objects.filter(
+                nik=nik,
+                keterangan__iexact="cuti potong gaji"
+            ).count()
+
+            self.fields['mangkir'].initial = count_mangkir + count_cuti_pot_gaji
+
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control mt-2 mb-2 border-0'})
+            field.widget.attrs.update({'autocomplete': 'off'})
+            field.widget.attrs.update({'readonly': 'readonly'})
+
+

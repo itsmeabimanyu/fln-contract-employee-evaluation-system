@@ -5,65 +5,105 @@
 
 <div class="tile mb-4">
     <div class="page-header">
-        <form method="post" id="myForm">
-            {% csrf_token %}
-            <div class="row">
-                <div class="col-lg-12">
-                    <h3 class="tile-title line-head">{{ card_title }}</h3>
-                </div>
+        <div class="row">
+            <div class="col-lg-12">
+                <h3 class="tile-title line-head">{{ card_title }}</h3>
             </div>
-            <div class="row">
-                <div class="table-responsive">
-                    <table class="table table-sm table-bordered">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                {% for key, field in fields.items %}
-                                    <th>{{ field }}</th>
-                                {% endfor %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <!-- ListView -->
-                        {% for item in items %}
+        </div>
+        <div class="row">
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                    <thead>
                         <tr>
-                            <td class="clickable table-secondary">{{ forloop.counter }}</td>
-                            {% for field in fields %}
-                            <td>{{ item|get_field_value:field|upper|safe }}</td>
+                            <th>#</th>
+                            {% for key, field in fields.items %}
+                                <th>{{ field }}</th>
                             {% endfor %}
                         </tr>
+                    </thead>
+                    <tbody>
+                    <!-- ListView -->
+                    {% for item in items %}
+                    <tr>
+                        <td class="clickable table-secondary">{{ forloop.counter }}</td>
+                        {% for field in fields %}
+                        <td>{{ item|get_field_value:field|upper|safe }}</td>
                         {% endfor %}
-                        <!-- End ListView -->
-                    </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div class="row">
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                    {% for kategori in formset.kategori_data %}
-                        <tr>
-                            <th colspan=2 class="table-secondary">{{ forloop.counter }}. {{ kategori.kategori_nama }}</th>
-                        </tr>
-                        {% for pertanyaan in kategori.pertanyaan %}
-                        <tr>
-                            <td><strong>{{ pertanyaan.question_text }}</strong></td>
-                            <td>{{ formset|get_item:pertanyaan.field_name }}</td>
-                        </tr>
-                        {% endfor %}
+                    </tr>
                     {% endfor %}
-                    </table>
-                </div>
+                    <!-- End ListView -->
+                </tbody>
+                </table>
             </div>
-            <div class="tile-footer">
-                <div class="row">
-                    <div class="col-md-8 col-md-offset-3">
-                        <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
+        </div>
+
+        <div class="row">
+            <div class="bs-component">
+                <ul class="nav nav-tabs">
+                    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab_1">General</a></li>
+                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab_2">Attendance</a></li>     
+                </ul>
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade active show" id="tab_1">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="row mt-3">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                    {% for kategori in formset.kategori_data %}
+                                        <tr>
+                                            <th colspan=2 class="table-secondary">{{ forloop.counter }}. {{ kategori.kategori_nama }}</th>
+                                        </tr>
+                                        {% for pertanyaan in kategori.pertanyaan %}
+                                        <tr>
+                                            <td><strong>{{ pertanyaan.question_text }}</strong></td>
+                                            <td>{{ formset|get_item:pertanyaan.field_name }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="tile-footer">
+                                <div class="row">
+                                    <div class="col-md-8 col-md-offset-3">
+                                        <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="tab-pane fade" id="tab_2">
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="row mt-3">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th colspan=2 class="table-secondary">{{ formset.kategori_data|length|add:"1" }}. {{ formset_1.title }}</th>
+                                        </tr>
+                                        {% for field in formset_1 %}
+                                        <tr>
+                                            <th>{{ field.label|upper }}</th>
+                                            <th>{{ field }}</th>
+                                        </tr>
+                                        {% endfor %}
+                                    </table>
+                                    <div class="tile-footer">
+                                        <div class="row">
+                                            <div class="col-md-8 col-md-offset-3">
+                                                <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 

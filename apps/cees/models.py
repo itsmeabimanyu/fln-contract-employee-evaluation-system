@@ -116,7 +116,7 @@ class Jawaban(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     pertanyaan = models.ForeignKey(Pertanyaan, on_delete=models.CASCADE)
     teks_jawaban = models.CharField(max_length=255)
-    poin = models.PositiveIntegerField()
+    poin = models.DecimalField(max_digits=5, decimal_places=2)
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -164,6 +164,7 @@ class HasilPenilaian(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+""" Note. Custom kategori Absensi """
 class DataAbsensiSementara(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     nik = models.CharField(max_length=50)

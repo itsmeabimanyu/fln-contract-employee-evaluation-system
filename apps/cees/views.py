@@ -12,7 +12,7 @@ from .forms import (
     DepartemenForm, JabatanForm, DataKaryawanForm,
     UpdateDataKaryawanForm, MasaKontrakForm, KategoriPenilaianForm,
     PertanyaanForm, JawabanForm, KategoriPerJabatanForm,
-    ResponseForm, UploadExcelForm
+    ResponseForm, UploadExcelForm, AbsensiForm
 )
 from django.shortcuts import get_object_or_404, redirect, render
 from datetime import datetime
@@ -985,6 +985,8 @@ class CreatePenilaianKaryawan(TemplateView):
         form = ResponseForm(jabatan=self.masakontrak.jabatan)
         context = self.get_context_data(**kwargs)
         context['formset'] = form
+        context['formset_1'] = AbsensiForm(karyawan=self.masakontrak.karyawan)
+        
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
@@ -1011,10 +1013,58 @@ class CreatePenilaianKaryawan(TemplateView):
 
         context['items'] = items
         return context
+    
+    def post(self, request, *args, **kwargs):
 
+        formset_1 = AbsensiForm(request.POST)
+
+        """ Note. Custom kategori Absensi """
+        if formset_1.is_valid():
+
+            kategori_obj, created = KategoriPenilaian.objects.get_or_create(
+                nama_kategori="KEHADIRAN",
+                defaults={'bobot_nilai': 20, 'deleted_at': None}
+            )
+
+            pertanyaan_obj, created = Pertanyaan.objects.get_or_create(
+                kategori=kategori_obj,
+                teks_pertanyaan='ALASAN',
+                defaults={'deleted_at': None}
+            )
+
+            '''
+            for field_name, value in formset_1.cleaned_data.items():
+                pertanyaan_obj, created = Pertanyaan.objects.get_or_create(
+                    kategori=kategori_obj,
+                    text_pertanyaan=field_name,
+                    defaults={'deleted_at': None}
+                )
+            '''
+
+            poin = {
+                'mangkir': 5,
+                'tanpa_absen': 0.25,
+                'terlambat': 0.25,
+                'izin_cepat': 0.25,
+            }
+            
+            for field_name, value in formset_1.cleaned_data.items():
+                jawaban_obj, created = Jawaban.objects.get_or_create(
+                    pertanyaan=pertanyaan_obj,
+                    teks_jawaban=field_name,
+                    poin = poin[field_name],
+                    defaults={'deleted_at': None}
+                )
+
+            print(formset_1.cleaned_data['mangkir'])
+
+
+        return redirect(self.request.META.get('HTTP_REFERER'))
+    
+
+""" Note. Custom kategori Absensi """
 import pandas as pd
-import json
-from django.utils.safestring import mark_safe
+
 class UploadExcelAbsensi(TemplateView):
     template_name = 'pages/create_attendance.html'
 
