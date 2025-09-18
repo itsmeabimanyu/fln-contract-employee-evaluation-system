@@ -1125,7 +1125,7 @@ class UploadExcelAbsensi(TemplateView):
         return render(request, self.template_name, context)
 
 from collections import defaultdict
-from decimal import Decimal
+from django.db.models import Max
 
 class RangkumanPenilaian(TemplateView):
     template_name = 'pages/partials/summary.html'
@@ -1146,39 +1146,71 @@ class RangkumanPenilaian(TemplateView):
             'hasil': 'Hasil'
         }
 
-        items = HasilPenilaian.objects.filter(kontrak=self.masakontrak)
+        # Step 1: Ambil nilai maksimum dari tiap pertanyaan per kategori
+        pertanyaan_dengan_poin_maks = (
+            Jawaban.objects
+            .values('pertanyaan__kategori', 'pertanyaan')
+            .annotate(poin_maks=Max('poin'))
+        )
+
+        # Step 2: Kelompokkan nilai maksimum per kategori
+        nilai_maks_per_kategori = defaultdict(lambda: 0)
+        for row in pertanyaan_dengan_poin_maks:
+            kategori_id = row['pertanyaan__kategori']
+            poin_maks = round(row['poin_maks'], 2)
+            nilai_maks_per_kategori[kategori_id] += poin_maks
+
         total_kehadiran = 0
         kehadiran_list = []
-
-
         total_per_kategori = defaultdict(lambda: 0)
-        count_per_kategori = defaultdict(lambda: 0)
+
+        items = HasilPenilaian.objects.filter(kontrak=self.masakontrak)
 
         for item in items:
             item.pertanyaan = item.jawaban.pertanyaan
             item.kategori = item.pertanyaan.kategori
-            item.nilai = item.nilai if item.nilai is not None else item.jawaban.poin
+            item.nilai = item.nilai if item.nilai else item.jawaban.poin
 
             if item.kategori.nama_kategori.upper() == "KEHADIRAN":
+                """ Note. Custom kategori Absensi """
+                # Rumus: Bobot x Qty = Total
                 item.hasil = item.jawaban.poin * item.nilai
+                item.hasil = round(item.hasil, 2)
                 total_kehadiran += item.hasil
                 kehadiran_list.append(f"{item.jawaban}: {round(item.hasil, 2)}")
             else:
                 item.hasil = item.jawaban.poin
-                # Total per kategori
                 total_per_kategori[item.kategori] += round(item.hasil, 2)
-
-        # 20 - Total (total_kehadiran) = N5 (sisa_kehadiran)
-        sisa_kehadiran = 20 - total_kehadiran
         
-        total_per_kategori_str = {k.nama_kategori: round(float(v), 2) for k, v in total_per_kategori.items()}
+        total_per_kategori_str = {k.nama_kategori: round(v, 2) for k, v in total_per_kategori.items()}
 
-        # context['total_per_kategori'] = total_per_kategori
+        # Step 3: Hitung skor akhir per kategori
+        skor_akhir_per_kategori = {}
+        for kategori, total in total_per_kategori.items():
+            kategori_id = kategori.id
+            total_maks = nilai_maks_per_kategori.get(kategori_id, 1)  # Hindari div 0
+
+            bobot = round(kategori.bobot_nilai, 2)
+
+            # Rumus: Total/(Nilai max. dari tiap pertanyaan) * Bobot nilai = Hasil
+            skor = round(total, 2) / round(total_maks, 2) * bobot
+            skor_akhir_per_kategori[kategori.nama_kategori] = round(skor, 2)
+
+        # Rumus: Jumlahkan semua Hasil dari tiap kategori
+        total_skor = sum(skor_akhir_per_kategori.values())
+        print(total_skor)
+
+        """ Note. Custom kategori Absensi """
+        # Rumus: 20 - Total = Hasil 
+        sisa_kehadiran = 20 - total_kehadiran
+
         context['kehadiran'] = {
             'list': kehadiran_list,
             'total': round(total_kehadiran, 2),
             'sisa': round(sisa_kehadiran, 2),
-            'total_per_kategori': total_per_kategori_str
+            'total_per_kategori': total_per_kategori_str,
+            'skor_per_kategori': skor_akhir_per_kategori,
+            'total_skor_akhir': round(total_skor, 2) - round(sisa_kehadiran, 2)
         }
 
         context['items'] = items
