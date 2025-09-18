@@ -523,49 +523,6 @@ class UpdateKaryawan(TemplateView):
         response = super().form_invalid(form)
         # messages.error(self.request, 'There was an error creating the Invoice. Please check the form and try again.')
         return response
-    
-'''
-class CreateKategori(TemplateView):
-    template_name = 'pages/create_category.html'
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Evaluation'
-        context['card_title'] = 'Evaluation'
-        context['kategori_form'] = KategoriPenilaianForm
-        context['pertanyaan_form'] = PertanyaanForm
-        context['jawaban_form'] = JawabanForm
-        return context
-    
-    def post(self, request, *args, **kwargs):
-        action = request.POST.get('action')
-        if action == 'save':
-            category = request.POST.get('nama_kategori')
-            score_weight = request.POST.get('bobot_nilai')
-            questions = request.POST.getlist('teks_pertanyaan')
-
-            # print("Kategori:", category)
-            # print("Bobot:", score_weight)
-
-            kategori = KategoriPenilaian.objects.create(
-                nama_kategori=category,
-                bobot_nilai=score_weight
-            )
-            # Loop pertanyaan
-            for i, question in enumerate(questions):
-                # print(f"Pertanyaan {i+1}: {question}")
-
-                # Ambil jawaban dan poin khusus pertanyaan ke-i
-                jawaban_teks_list = request.POST.getlist(f'jawaban_{i}_teks[]')
-                jawaban_poin_list = request.POST.getlist(f'jawaban_{i}_poin[]')
-
-                pertanyaan = Pertanyaan.objects.create(teks_pertanyaan=question, kategori=kategori)
-
-                for j, (teks, poin) in enumerate(zip(jawaban_teks_list, jawaban_poin_list)):
-                    # print(f"  Jawaban {j+1}: {teks} (Poin: {poin})")
-                    Jawaban.objects.create(pertanyaan=pertanyaan, teks_jawaban=teks, poin=poin)
-        return redirect(self.request.META.get('HTTP_REFERER'))
-'''
 
 class ListKategori(TemplateView):
     template_name = 'pages/base_create.html'
@@ -984,15 +941,15 @@ class CreatePenilaianKaryawan(TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
-        form = ResponseForm(jabatan=self.masakontrak.jabatan)
         context = self.get_context_data(**kwargs)
-        context['formset'] = form
+        context['formset'] = ResponseForm(jabatan=self.masakontrak.jabatan)
         context['formset_1'] = AbsensiForm(karyawan=self.masakontrak.karyawan)
         
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['pk'] = self.masakontrak.pk
         context['title'] = 'Employee Evaluation'
         context['card_title'] = 'Employee Evaluation'
         context['fields'] = {
@@ -1017,7 +974,17 @@ class CreatePenilaianKaryawan(TemplateView):
         return context
     
     def post(self, request, *args, **kwargs):
+        form = ResponseForm(request.POST, jabatan=self.masakontrak.jabatan)
         formset_1 = AbsensiForm(request.POST)
+
+        if form.is_valid():
+            for field_name, value in form.cleaned_data.items():
+                if field_name.startswith('jawaban_') and value is not None:
+                    jawaban = Jawaban.objects.get(id=value)
+                    HasilPenilaian.objects.create(
+                        kontrak=self.masakontrak,
+                        jawaban=jawaban,
+                    )
 
         """ Note. Custom kategori Absensi """
         if formset_1.is_valid():
@@ -1028,7 +995,7 @@ class CreatePenilaianKaryawan(TemplateView):
                     jawaban = Jawaban.objects.get(id=jawaban_id)
                     
                     HasilPenilaian.objects.create(
-                        karyawan=self.masakontrak.karyawan,
+                        kontrak=self.masakontrak,
                         jawaban=jawaban,
                         nilai=value
                     )
@@ -1157,5 +1124,64 @@ class UploadExcelAbsensi(TemplateView):
                 
         return render(request, self.template_name, context)
 
+from collections import defaultdict
+from decimal import Decimal
+
+class RangkumanPenilaian(TemplateView):
+    template_name = 'pages/partials/summary.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        self.masakontrak = MasaKontrak.objects.get(id=pk, deleted_at__isnull=True)
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['summary_title'] = 'Rangkuman Penilaian'
+        context['fields'] = {
+            'kategori': 'Category',
+            'pertanyaan': 'Question',
+            'jawaban': 'Answer',
+            'nilai': 'Score', 
+            'hasil': 'Hasil'
+        }
+
+        items = HasilPenilaian.objects.filter(kontrak=self.masakontrak)
+        total_kehadiran = 0
+        kehadiran_list = []
+
+
+        total_per_kategori = defaultdict(lambda: 0)
+        count_per_kategori = defaultdict(lambda: 0)
+
+        for item in items:
+            item.pertanyaan = item.jawaban.pertanyaan
+            item.kategori = item.pertanyaan.kategori
+            item.nilai = item.nilai if item.nilai is not None else item.jawaban.poin
+
+            if item.kategori.nama_kategori.upper() == "KEHADIRAN":
+                item.hasil = item.jawaban.poin * item.nilai
+                total_kehadiran += item.hasil
+                kehadiran_list.append(f"{item.jawaban}: {round(item.hasil, 2)}")
+            else:
+                item.hasil = item.jawaban.poin
+                # Total per kategori
+                total_per_kategori[item.kategori] += round(item.hasil, 2)
+
+        # 20 - Total (total_kehadiran) = N5 (sisa_kehadiran)
+        sisa_kehadiran = 20 - total_kehadiran
+        
+        total_per_kategori_str = {k.nama_kategori: round(float(v), 2) for k, v in total_per_kategori.items()}
+
+        # context['total_per_kategori'] = total_per_kategori
+        context['kehadiran'] = {
+            'list': kehadiran_list,
+            'total': round(total_kehadiran, 2),
+            'sisa': round(sisa_kehadiran, 2),
+            'total_per_kategori': total_per_kategori_str
+        }
+
+        context['items'] = items
+        return context
     
     

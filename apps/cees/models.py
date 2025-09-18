@@ -148,7 +148,7 @@ class KategoriPerJabatan(models.Model):
 
 class HasilPenilaian(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    karyawan = models.ForeignKey(DataKaryawan, on_delete=models.CASCADE)
+    kontrak = models.ForeignKey(MasaKontrak, on_delete=models.CASCADE)
     jawaban = models.ForeignKey(Jawaban, on_delete=models.CASCADE)
     nilai = models.DecimalField(
         max_digits=5, 

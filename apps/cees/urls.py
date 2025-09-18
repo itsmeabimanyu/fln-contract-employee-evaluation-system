@@ -18,6 +18,7 @@ urlpatterns = [
     path('evaluation/form/<uuid:pk>', views.CreatePenilaianKaryawan.as_view(), name='create_penilaian_karyawan'),
     # Note. Custom kategori Absensi
     path('evaluation/import/attendance/', views.UploadExcelAbsensi.as_view(), name='upload_excel_absensi'),
+    path('rangkuman/<uuid:pk>/', views.RangkumanPenilaian.as_view(), name='rangkuman'),
 ]
 
 # Tambahkan register/ hanya jika dalam mode DEBUG (development)

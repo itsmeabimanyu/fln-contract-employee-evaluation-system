@@ -1,0 +1,45 @@
+{% load static custom_filters %}
+<div class="table-responsive">
+    <table id="penilaian-table" class="table table-bordered">
+        <thead class="table-secondary">
+            <tr>
+                <th colspan="{{ fields|length }}" class="table-secondary">{{ summary_title|upper }}</th>
+            </tr>
+            <tr>
+                {% if fields %}
+                    {% for key, field in fields.items %}
+                        <th>{{ field }}</th>
+                    {% endfor %}
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                {% for field in fields %}
+                <td>{{ item|get_field_value:field|upper|safe }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <ul>
+    {% for line in kehadiran.list %}
+    <li>{{ line }}</li>
+    {% endfor %}
+    </ul>
+    <p>Total Kehadiran: {{ kehadiran.total }}</p>
+    <p>Sisa Kehadiran: {{ kehadiran.sisa }}</p>
+    {% for kategori, nilai in kehadiran.total_per_kategori.items %}
+        <p>{{ kategori }}: {{ nilai }}</p>
+    {% endfor %}
+
+    <h3>Rata-rata per Kategori</h3>
+    <ul>
+    {% for kategori, rata_rata in rata_rata_per_kategori.items %}
+        <li>{{ kategori }} : {{ rata_rata }}</li>
+    {% endfor %}
+    </ul>
+
+</div>

@@ -268,7 +268,7 @@ class ResponseForm(forms.Form):
                     jawaban_qs = Jawaban.objects.filter(pertanyaan=question, deleted_at__isnull=True)
                     choices = [(str(j.id), j.teks_jawaban) for j in jawaban_qs]
 
-                    field_name = f"question_{question.id}"
+                    field_name = f"jawaban_{question.id}"
                     self.fields[field_name] = forms.ChoiceField(label=f"{kategori.nama_kategori} - {question.teks_pertanyaan}", choices=choices, widget=forms.RadioSelect, required=True)
 
                     pertanyaan_fields.append({
@@ -295,7 +295,6 @@ class UploadExcelForm(forms.Form):
             field.widget.attrs.update({'autocomplete': 'off'})
 
 """ Note. Custom kategori Absensi """
-
 class AbsensiForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.karyawan = kwargs.pop('karyawan', None)
