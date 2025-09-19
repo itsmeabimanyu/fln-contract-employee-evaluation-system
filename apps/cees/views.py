@@ -932,6 +932,9 @@ class ListPenilaianKaryawan(TemplateView):
 
         return context
     
+""" Note: Jika sudah ada di tabel HasilPenilaian update, jika tidak ada create baru,
+untuk absensi jika NIK tidak ada ditabel sementara tidak bisa diinput (jika create baru).
+tombol submit 'none' pada form absensi, jika kategori 'kehadiran' ada di tabel HasilPenilaian """
 class CreatePenilaianKaryawan(TemplateView):
     template_name = 'pages/create_evaluation.html'
 
@@ -942,9 +945,8 @@ class CreatePenilaianKaryawan(TemplateView):
 
     def get(self, request, *args, **kwargs):
         context = self.get_context_data(**kwargs)
-        context['formset'] = ResponseForm(jabatan=self.masakontrak.jabatan)
-        context['formset_1'] = AbsensiForm(karyawan=self.masakontrak.karyawan)
-        
+        context['formset'] = ResponseForm(jabatan=self.masakontrak.jabatan, kontrak=self.masakontrak)
+        context['formset_1'] = AbsensiForm(karyawan=self.masakontrak.karyawan, kontrak=self.masakontrak)
         return self.render_to_response(context)
 
     def get_context_data(self, **kwargs):
@@ -963,6 +965,22 @@ class CreatePenilaianKaryawan(TemplateView):
             'tgl_akhir_kontrak': 'End Date',
             'status_karyawan': 'Status',
         }
+
+        if not HasilPenilaian.objects.filter(
+            kontrak=self.masakontrak,
+            jawaban__pertanyaan__kategori__nama_kategori="KEHADIRAN",
+            deleted_at__isnull=True
+        ).exists():
+            context['btn_submit_1'] = """
+                <div class="tile-footer">
+                    <div class="row">
+                        <div class="col-md-8 col-md-offset-3">
+                            <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            """
+
         items = MasaKontrak.objects.filter(id=self.masakontrak.id, deleted_at__isnull=True)
         for item in items:
             item.nik = item.karyawan.nik
@@ -981,10 +999,23 @@ class CreatePenilaianKaryawan(TemplateView):
             for field_name, value in form.cleaned_data.items():
                 if field_name.startswith('jawaban_') and value is not None:
                     jawaban = Jawaban.objects.get(id=value)
-                    HasilPenilaian.objects.create(
+                    # Cari existing object dengan pertanyaan yang sama
+                    existing_obj = HasilPenilaian.objects.filter(
                         kontrak=self.masakontrak,
-                        jawaban=jawaban,
-                    )
+                        jawaban__pertanyaan=jawaban.pertanyaan,
+                        deleted_at__isnull=True
+                    ).first()
+
+                    if existing_obj:
+                        # update jawaban-nya
+                        existing_obj.jawaban = jawaban
+                        existing_obj.save()
+                    else:
+                        # buat baru
+                        HasilPenilaian.objects.create(
+                            kontrak=self.masakontrak,
+                            jawaban=jawaban
+                        )
 
         """ Note. Custom kategori Absensi """
         if formset_1.is_valid():
@@ -992,19 +1023,30 @@ class CreatePenilaianKaryawan(TemplateView):
                 if field_name.startswith('jawaban_') and value is not None:
                     # Ambil ID dari field name: jawaban_<id>
                     jawaban_id = field_name.split('_', 1)[1]
-                    jawaban = Jawaban.objects.get(id=jawaban_id)
+                    jawaban = Jawaban.objects.get(id=jawaban_id, deleted_at__isnull=True)
                     
-                    HasilPenilaian.objects.create(
-                        kontrak=self.masakontrak,
-                        jawaban=jawaban,
-                        nilai=value
-                    )
+                    # Cek apakah data HasilPenilaian sudah ada
+                    try:
+                        obj = HasilPenilaian.objects.get(kontrak=self.masakontrak, jawaban=jawaban, deleted_at__isnull=True)
+                        obj.nilai = value
+                        obj.save()
+                    except HasilPenilaian.DoesNotExist:
+                        # Jika tidak ada, hanya buat jika absensi masih ada
+                        if DataAbsensiSementara.objects.filter(nik=self.masakontrak.karyawan.nik).exists():
+                            HasilPenilaian.objects.create(
+                                kontrak=self.masakontrak,
+                                jawaban=jawaban,
+                                nilai=value
+                            )
+                        else:
+                            print(f"Tidak membuat data untuk jawaban ID {jawaban_id} karena absensi tidak ditemukan.")
 
         return redirect(self.request.META.get('HTTP_REFERER'))
     
 """ Note. Custom kategori Absensi """
 import pandas as pd
 
+""" Note: Setiap yang upload ditimpa """
 class UploadExcelAbsensi(TemplateView):
     template_name = 'pages/create_attendance.html'
 
@@ -1127,6 +1169,36 @@ class UploadExcelAbsensi(TemplateView):
 from collections import defaultdict
 from django.db.models import Max
 
+def get_hasil_nilai_dan_skor(score):
+    """
+    Menentukan nilai huruf, predikat, dan rekomendasi berdasarkan skor.
+    """
+    if score >= 90:
+        return {
+            'nilai': 'A',
+            'predikat': 'Baik Sekali',
+            'rekomendasi': 'Disarankan'
+        }
+    elif 80 <= score <= 89:
+        return {
+            'nilai': 'B',
+            'predikat': 'Baik',
+            'rekomendasi': 'Disarankan'
+        }
+    elif 76 <= score <= 79:
+        return {
+            'nilai': 'C',
+            'predikat': 'Cukup',
+            'rekomendasi': 'Kurang Disarankan'
+        }
+    else:
+        return {
+            'nilai': 'D',
+            'predikat': 'Kurang',
+            'rekomendasi': 'Tidak Disarankan'
+        }
+
+""" Note: Jangan sertakan 'deleted_at__isnull=True' disini """
 class RangkumanPenilaian(TemplateView):
     template_name = 'pages/partials/summary.html'
 
@@ -1139,11 +1211,10 @@ class RangkumanPenilaian(TemplateView):
         context = super().get_context_data(**kwargs)
         context['summary_title'] = 'Rangkuman Penilaian'
         context['fields'] = {
-            'kategori': 'Category',
+            'kategori_str': 'Category',
             'pertanyaan': 'Question',
             'jawaban': 'Answer',
             'nilai': 'Score', 
-            'hasil': 'Hasil'
         }
 
         # Step 1: Ambil nilai maksimum dari tiap pertanyaan per kategori
@@ -1164,16 +1235,17 @@ class RangkumanPenilaian(TemplateView):
         kehadiran_list = []
         total_per_kategori = defaultdict(lambda: 0)
 
-        items = HasilPenilaian.objects.filter(kontrak=self.masakontrak)
+        items = HasilPenilaian.objects.filter(kontrak=self.masakontrak).order_by('jawaban__pertanyaan__kategori__nama_kategori')
 
         for item in items:
             item.pertanyaan = item.jawaban.pertanyaan
             item.kategori = item.pertanyaan.kategori
+            item.kategori_str = item.pertanyaan.kategori.nama_kategori
             item.nilai = item.nilai if item.nilai else item.jawaban.poin
 
             if item.kategori.nama_kategori.upper() == "KEHADIRAN":
                 """ Note. Custom kategori Absensi """
-                # Rumus: Bobot x Qty = Total
+                # Rumus: Bobot * Qty = Total
                 item.hasil = item.jawaban.poin * item.nilai
                 item.hasil = round(item.hasil, 2)
                 total_kehadiran += item.hasil
@@ -1198,22 +1270,21 @@ class RangkumanPenilaian(TemplateView):
 
         # Rumus: Jumlahkan semua Hasil dari tiap kategori
         total_skor = sum(skor_akhir_per_kategori.values())
-        print(total_skor)
 
         """ Note. Custom kategori Absensi """
         # Rumus: 20 - Total = Hasil 
         sisa_kehadiran = 20 - total_kehadiran
 
-        context['kehadiran'] = {
-            'list': kehadiran_list,
-            'total': round(total_kehadiran, 2),
-            'sisa': round(sisa_kehadiran, 2),
+        context['summary_fields'] = {
+            'list_kehadiran': kehadiran_list,
+            'total_kehadiran': round(total_kehadiran, 2),
+            'sisa_kehadiran': round(sisa_kehadiran, 2),
             'total_per_kategori': total_per_kategori_str,
             'skor_per_kategori': skor_akhir_per_kategori,
-            'total_skor_akhir': round(total_skor, 2) - round(sisa_kehadiran, 2)
+            'total_skor_akhir': round(total_skor, 2) - round(sisa_kehadiran, 2),
+            'hasil': get_hasil_nilai_dan_skor(round(total_skor, 2))
         }
 
         context['items'] = items
         return context
-    
     

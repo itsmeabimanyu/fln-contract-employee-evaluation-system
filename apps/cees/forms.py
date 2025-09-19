@@ -250,9 +250,18 @@ class KategoriPerJabatanForm(forms.ModelForm):
 class ResponseForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.jabatan = kwargs.pop('jabatan', None)
+        self.kontrak = kwargs.pop('kontrak', None)
         super().__init__(*args, **kwargs)
 
         self.kategori_data = []  # untuk akses di template
+
+        # Ambil hasil penilaian sebelumnya jika ada
+        existing_jawaban = {}
+        if self.kontrak:
+            hasil_list = HasilPenilaian.objects.filter(kontrak=self.kontrak)
+            for hasil in hasil_list:
+                pertanyaan_id = hasil.jawaban.pertanyaan.id
+                existing_jawaban[pertanyaan_id] = hasil.jawaban.id
 
         if self.jabatan:
             # Ambil kategori yang terkait jabatan
@@ -269,7 +278,17 @@ class ResponseForm(forms.Form):
                     choices = [(str(j.id), j.teks_jawaban) for j in jawaban_qs]
 
                     field_name = f"jawaban_{question.id}"
-                    self.fields[field_name] = forms.ChoiceField(label=f"{kategori.nama_kategori} - {question.teks_pertanyaan}", choices=choices, widget=forms.RadioSelect, required=True)
+
+                    # Cek jika sudah pernah dijawab
+                    initial_value = existing_jawaban.get(question.id)
+
+                    self.fields[field_name] = forms.ChoiceField(
+                        label=f"{kategori.nama_kategori} - {question.teks_pertanyaan}",
+                        choices=choices,
+                        widget=forms.RadioSelect,
+                        required=True,
+                        initial=str(initial_value) if initial_value else None
+                        )
 
                     pertanyaan_fields.append({
                         'field_name': field_name,
@@ -298,82 +317,82 @@ class UploadExcelForm(forms.Form):
 class AbsensiForm(forms.Form):
     def __init__(self, *args, **kwargs):
         self.karyawan = kwargs.pop('karyawan', None)
+        self.kontrak = kwargs.pop('kontrak', None)
         super().__init__(*args, **kwargs)
 
         self.kategori_data = []  # untuk akses di template
 
-        kategori_ids = KategoriPenilaian.objects.filter(nama_kategori="KEHADIRAN", deleted_at__isnull=True)
-        kategori_queryset = kategori_ids
+        # Ambil hasil penilaian sebelumnya jika ada
+        existing_nilai = {}
+        if self.kontrak:
+            hasil_list = HasilPenilaian.objects.filter(kontrak=self.kontrak, deleted_at__isnull=True)
+            for hasil in hasil_list:
+                existing_nilai[str(hasil.jawaban.id)] = hasil.nilai
+
+        # Ambil kategori KEHADIRAN
+        kategori_queryset = KategoriPenilaian.objects.filter(
+            nama_kategori="KEHADIRAN",
+            deleted_at__isnull=True
+        )
 
         for kategori in kategori_queryset:
             questions = Pertanyaan.objects.filter(kategori=kategori, deleted_at__isnull=True)
-
             pertanyaan_fields = []
 
             for question in questions:
-                jawaban_list = Jawaban.objects.filter(
-                    pertanyaan=question,
-                    deleted_at__isnull=True
-                )
+                jawaban_list = Jawaban.objects.filter(pertanyaan=question, deleted_at__isnull=True)
 
                 for jawaban in jawaban_list:
                     field_name = f'jawaban_{jawaban.id}'
 
-                     # Logika untuk menentukan nilai inisial
-                    initial_value = 0
+                    # Inisialisasi nilai awal
+                    if str(jawaban.id) in existing_nilai and existing_nilai[str(jawaban.id)] is not None:
+                        initial_value = int(existing_nilai[str(jawaban.id)])
+                    else:
+                        initial_value = 0
+                        if self.karyawan:
+                            nik = str(self.karyawan.nik)
+                            teks = jawaban.teks_jawaban.lower()
 
-                    if self.karyawan:
-                        nik = str(self.karyawan.nik)
-                        teks = jawaban.teks_jawaban.lower()
+                            if teks == 'terlambat':
+                                initial_value = DataAbsensiSementara.objects.filter(
+                                    nik=nik, keterangan__iexact="datang terlambat"
+                                ).count()
 
-                        if teks == 'terlambat':
-                            initial_value = DataAbsensiSementara.objects.filter(
-                                nik=nik,
-                                keterangan__iexact="datang terlambat"
-                            ).count()
+                            elif teks == 'izin/pulang cepat':
+                                initial_value = DataAbsensiSementara.objects.filter(
+                                    nik=nik, keterangan__iexact="pulang cepat"
+                                ).count()
 
-                        elif teks == 'izin/pulang cepat':
-                            initial_value = DataAbsensiSementara.objects.filter(
-                                nik=nik,
-                                keterangan__iexact="pulang cepat"
-                            ).count()
+                            elif teks == 'datang/pulang tanpa absen':
+                                datang = DataAbsensiSementara.objects.filter(
+                                    nik=nik, keterangan__iexact="datang tidak absen"
+                                ).count()
+                                pulang = DataAbsensiSementara.objects.filter(
+                                    nik=nik, keterangan__iexact="pulang tidak absen"
+                                ).count()
+                                initial_value = datang + pulang
 
-                        elif teks == 'datang/pulang tanpa absen':
-                            datang_tidak_absen = DataAbsensiSementara.objects.filter(
-                                nik=nik,
-                                keterangan__iexact="datang tidak absen"
-                            ).count()
+                            elif teks == 'mangkir/absen potong gaji atau potong cuti':
+                                mangkir = DataAbsensiSementara.objects.filter(
+                                    nik=nik, keterangan__iexact="mangkir / tanpa alasan"
+                                ).count()
+                                cuti_gaji = DataAbsensiSementara.objects.filter(
+                                    nik=nik, keterangan__iexact="cuti potong gaji"
+                                ).count()
+                                initial_value = mangkir + cuti_gaji
 
-                            pulang_tidak_absen = DataAbsensiSementara.objects.filter(
-                                nik=nik,
-                                keterangan__iexact="pulang tidak absen"
-                            ).count()
-
-                            initial_value = datang_tidak_absen + pulang_tidak_absen
-
-                        elif teks == 'mangkir/absen potong gaji atau potong cuti':
-                            mangkir = DataAbsensiSementara.objects.filter(
-                                nik=nik,
-                                keterangan__iexact="mangkir / tanpa alasan"
-                            ).count()
-
-                            cuti_potong_gaji = DataAbsensiSementara.objects.filter(
-                                nik=nik,
-                                keterangan__iexact="cuti potong gaji"
-                            ).count()
-
-                            initial_value = mangkir + cuti_potong_gaji
-                        
                     self.fields[field_name] = forms.IntegerField(
-                        label=jawaban.teks_jawaban,  # seolah jadi "pertanyaan"
+                        label=jawaban.teks_jawaban,
                         min_value=0,
                         required=False,
                         initial=initial_value,
                         widget=forms.NumberInput(attrs={
-                            'class': 'form-control',
+                            'class': 'form-control bg-light',
+                            'readonly': 'readonly'
                         })
                     )
-                    
+
                     pertanyaan_fields.append({
                         'field_name': field_name,
                         'question_text': jawaban.teks_jawaban,

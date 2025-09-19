@@ -53,7 +53,7 @@
                                     <table class="table table-bordered">
                                     {% for kategori in formset.kategori_data %}
                                         <tr>
-                                            <th colspan=2 class="table-secondary">{{ forloop.counter }}. {{ kategori.kategori_nama }}</th>
+                                            <th colspan=2 class="table-secondary">{{ forloop.counter|to_abjad }}. {{ kategori.kategori_nama }}</th>
                                         </tr>
                                         {% for pertanyaan in kategori.pertanyaan_fields %}
                                         <tr>
@@ -83,7 +83,7 @@
                                     <table class="table table-bordered">
                                     {% for kategori in formset_1.kategori_data %}
                                         <tr>
-                                            <th colspan=2 class="table-secondary">{{ formset.kategori_data|length|add:"1" }}. {{ kategori.kategori_nama }}</th>
+                                            <th colspan=2 class="table-secondary">{{ formset.kategori_data|length|add:"1"|to_abjad }}. {{ kategori.kategori_nama }}</th>
                                         </tr>
                                          {% for pertanyaan in kategori.pertanyaan_fields %}
                                         <tr>
@@ -93,13 +93,7 @@
                                         {% endfor %}
                                     {% endfor %}
                                     </table>
-                                    <div class="tile-footer">
-                                        <div class="row">
-                                            <div class="col-md-8 col-md-offset-3">
-                                                <button class="btn btn-primary" name="action" value="save" type="submit"><i class="bi bi-check-circle-fill me-2"></i>Submit</button>&nbsp;&nbsp;&nbsp;<button class="btn btn-secondary" type="button" onclick="window.history.back();"><i class="bi bi-x-circle-fill me-2"></i>Cancel</button>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    {{ btn_submit_1|safe }}
                                 </div>
                             </div>
                         </form>

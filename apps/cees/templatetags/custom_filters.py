@@ -43,3 +43,12 @@ def startswith(value, arg):
     if value:
         return value.startswith(arg)
     return False
+
+@register.filter
+def to_abjad(n):
+    """Convert 1 -> A, 2 -> B, ..., 27 -> AA, 28 -> AB, etc."""
+    result = ''
+    while n > 0:
+        n, remainder = divmod(n - 1, 26)
+        result = chr(65 + remainder) + result
+    return result
